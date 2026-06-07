@@ -43,6 +43,27 @@ export function createSummaryRouter(db) {
     });
   });
 
+  router.get('/timeline', (req, res) => {
+    const { groupBy = 'month', from, to } = req.query;
+    const fmtMap = { day: '%Y-%m-%d', month: '%Y-%m', year: '%Y' };
+    const sqlFmt = fmtMap[groupBy] ?? '%Y-%m';
+    const conds = [];
+    const params = [];
+    if (from) { conds.push('date >= ?'); params.push(from); }
+    if (to)   { conds.push('date <= ?'); params.push(to); }
+    const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+    const rows = db.prepare(`
+      SELECT
+        strftime('${sqlFmt}', date) AS period,
+        COALESCE(SUM(CASE WHEN type='INCOME'  THEN amount ELSE 0 END), 0) AS income,
+        COALESCE(SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END), 0) AS expenses
+      FROM transactions ${where}
+      GROUP BY period
+      ORDER BY period
+    `).all(...params);
+    res.json(rows);
+  });
+
   router.get('/distribution', (req, res) => {
     const { from, to } = req.query;
     const conds = [];

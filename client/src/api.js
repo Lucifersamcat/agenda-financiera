@@ -30,6 +30,7 @@ export const api = {
 
   getSummary:        (params)   => get(`/summary?${new URLSearchParams(params ?? {})}`),
   getDistribution:   (params)   => get(`/summary/distribution?${new URLSearchParams(params ?? {})}`),
+  getTimeline:       (params)   => get(`/summary/timeline?${new URLSearchParams(params ?? {})}`),
 
   getNotes:          ()         => get('/notes'),
   createNote:        (data)     => post('/notes', data),

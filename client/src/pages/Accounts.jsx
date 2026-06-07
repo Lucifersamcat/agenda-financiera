@@ -4,6 +4,8 @@ import Toast from '../components/Toast.jsx';
 
 const DEFAULT_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
 
+const TYPE_LABELS = { bank: 'Banco', cash: 'Efectivo', savings: 'Ahorros', other: 'Otro' };
+
 function fmt(n) {
   return Number(n ?? 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -111,8 +113,10 @@ export default function Accounts() {
                         onClick={() => setForm(f => ({ ...f, color: c }))}
                         style={{
                           width: 24, height: 24, borderRadius: '50%',
-                          background: c, border: form.color === c ? '3px solid #1e293b' : '2px solid transparent',
-                          cursor: 'pointer',
+                          background: c, border: 'none', cursor: 'pointer',
+                          outline: form.color === c ? `3px solid ${c}` : '3px solid transparent',
+                          outlineOffset: '2px',
+                          boxShadow: form.color === c ? '0 0 0 1px #fff inset' : 'none',
                         }}
                       />
                     ))}
@@ -139,7 +143,7 @@ export default function Accounts() {
                   <div className="account-dot" style={{ background: a.color }} />
                   <div className="account-info">
                     <div className="account-name">{a.name}</div>
-                    <div className="account-meta">{a.type}</div>
+                    <div className="account-meta">{TYPE_LABELS[a.type] ?? a.type}</div>
                   </div>
                   <div className="account-balance" style={{ color: Number(a.balance) >= 0 ? 'var(--income)' : 'var(--expense)' }}>
                     S/ {fmt(a.balance)}

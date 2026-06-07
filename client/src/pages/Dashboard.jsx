@@ -8,7 +8,7 @@ import { api } from '../api.js';
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 const PERIODS = [
-  { label: 'Semana', days: 7 },
+  { label: 'Semana', days: 7  },
   { label: 'Mes',    days: 30 },
   { label: 'Año',   days: 365 },
 ];
@@ -24,40 +24,102 @@ function periodDates(days) {
   return { from: toDateStr(from), to: toDateStr(to) };
 }
 
+function timelineConfig(periodIdx) {
+  const to  = toDateStr(new Date());
+  if (periodIdx === 0) {
+    const from = new Date();
+    from.setDate(from.getDate() - 6);
+    return { groupBy: 'day', from: toDateStr(from), to };
+  }
+  if (periodIdx === 1) {
+    const from = new Date();
+    from.setMonth(from.getMonth() - 5);
+    from.setDate(1);
+    return { groupBy: 'month', from: toDateStr(from), to };
+  }
+  const from = new Date();
+  from.setMonth(from.getMonth() - 11);
+  from.setDate(1);
+  return { groupBy: 'month', from: toDateStr(from), to };
+}
+
+function fillTimeline(data, { groupBy, from, to }) {
+  const dataMap = Object.fromEntries(data.map(d => [d.period, d]));
+  const result  = [];
+  const current = new Date(from + 'T12:00:00');
+  const end     = new Date(to   + 'T12:00:00');
+  if (groupBy === 'month') current.setDate(1);
+
+  while (current <= end) {
+    const period = groupBy === 'day'
+      ? toDateStr(current)
+      : `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+    if (!result.some(r => r.period === period)) {
+      result.push(dataMap[period] ?? { period, income: 0, expenses: 0 });
+    }
+    groupBy === 'day'
+      ? current.setDate(current.getDate() + 1)
+      : current.setMonth(current.getMonth() + 1);
+  }
+  return result;
+}
+
+function fmtPeriodLabel(period, groupBy) {
+  if (groupBy === 'day') {
+    const d = new Date(period + 'T12:00:00');
+    return d.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric' });
+  }
+  const [y, m] = period.split('-');
+  const d = new Date(parseInt(y), parseInt(m) - 1);
+  return d.toLocaleDateString('es-PE', { month: 'short', year: '2-digit' });
+}
+
 function fmt(n) {
   return Number(n ?? 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function fmtK(v) {
+  if (v >= 1000) return `${(v / 1000).toFixed(0)}k`;
+  return v;
+}
+
 export default function Dashboard() {
-  const [periodIdx, setPeriodIdx]         = useState(1);
-  const [summary, setSummary]             = useState(null);
-  const [distribution, setDistribution]   = useState([]);
-  const [recent, setRecent]               = useState([]);
-  const [loading, setLoading]             = useState(true);
+  const [periodIdx, setPeriodIdx]       = useState(1);
+  const [summary, setSummary]           = useState(null);
+  const [distribution, setDistribution] = useState([]);
+  const [timeline, setTimeline]         = useState([]);
+  const [recent, setRecent]             = useState([]);
+  const [loading, setLoading]           = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const params = periodDates(PERIODS[periodIdx].days);
-    const [s, d, t] = await Promise.all([
+    const params   = periodDates(PERIODS[periodIdx].days);
+    const tlConfig = timelineConfig(periodIdx);
+    const [s, d, t, tl] = await Promise.all([
       api.getSummary(params),
       api.getDistribution(params),
       api.getTransactions({ ...params, limit: 5, page: 1 }),
+      api.getTimeline(tlConfig),
     ]);
     setSummary(s);
     setDistribution(d);
     setRecent(t.data ?? []);
+    setTimeline(fillTimeline(tl, tlConfig));
     setLoading(false);
   }, [periodIdx]);
 
   useEffect(() => { load(); }, [load]);
 
-  const barData = summary
-    ? [{ name: PERIODS[periodIdx].label, Ingresos: Number(summary.total_income), Egresos: Number(summary.total_expenses) }]
-    : [];
+  const tlGroupBy = timelineConfig(periodIdx).groupBy;
+  const barData   = timeline.map(row => ({
+    name:      fmtPeriodLabel(row.period, tlGroupBy),
+    Ingresos:  Number(row.income),
+    Egresos:   Number(row.expenses),
+  }));
 
   const pieData = distribution.map(a => ({
-    name: a.name,
-    value: Number(a.total_expenses),
+    name:  a.name,
+    value: Number(a.expenses),
   }));
 
   return (
@@ -98,12 +160,14 @@ export default function Dashboard() {
               <div className="card-value negative">S/ {fmt(summary?.total_expenses)}</div>
             </div>
             {(summary?.by_account ?? []).map(a => (
-              <div className="card" key={a.account_id}>
+              <div className="card" key={a.id}>
                 <div className="card-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: a.color, display: 'inline-block' }} />
                   {a.name}
                 </div>
-                <div className="card-value" style={{ fontSize: 18 }}>S/ {fmt(a.balance)}</div>
+                <div className="card-value" style={{ fontSize: 18, color: Number(a.balance) >= 0 ? 'var(--income)' : 'var(--expense)' }}>
+                  S/ {fmt(a.balance)}
+                </div>
               </div>
             ))}
           </div>
@@ -112,23 +176,28 @@ export default function Dashboard() {
             <div className="chart-box" style={{ flex: 2 }}>
               <h3>Ingresos vs Egresos</h3>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={barData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
+                <BarChart data={barData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barCategoryGap="30%">
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtK} width={36} />
                   <Tooltip formatter={(v) => `S/ ${fmt(v)}`} />
                   <Legend />
-                  <Bar dataKey="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Egresos"  fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Ingresos" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={32} />
+                  <Bar dataKey="Egresos"  fill="#f59e0b" radius={[3, 3, 0, 0]} maxBarSize={32} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
-            {pieData.length > 0 && (
-              <div className="chart-box">
-                <h3>Distribución de egresos</h3>
+            <div className="chart-box">
+              <h3>Distribución de egresos</h3>
+              {pieData.length === 0 ? (
+                <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                  Sin egresos en este período
+                </div>
+              ) : (
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                       {pieData.map((_, i) => (
                         <Cell key={i} fill={COLORS[i % COLORS.length]} />
                       ))}
@@ -136,8 +205,8 @@ export default function Dashboard() {
                     <PieTooltip formatter={(v) => `S/ ${fmt(v)}`} />
                   </PieChart>
                 </ResponsiveContainer>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           <div className="section">
@@ -160,9 +229,11 @@ export default function Dashboard() {
                     <tr key={tx.id}>
                       <td>{tx.date}</td>
                       <td>{tx.description || '—'}</td>
-                      <td style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: tx.account_color, display: 'inline-block' }} />
-                        {tx.account_name}
+                      <td>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: tx.account_color, display: 'inline-block', flexShrink: 0 }} />
+                          {tx.account_name}
+                        </span>
                       </td>
                       <td>
                         <span className={`badge badge-${tx.type === 'INCOME' ? 'income' : 'expense'}`}>

@@ -19,12 +19,23 @@ export default function Notes() {
     try {
       const data = await api.getNotes();
       setNotes(data);
+      return data;
     } catch (e) {
       setToast({ message: e.message, type: 'error' });
+      return [];
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    async function init() {
+      const data = await load();
+      if (data.length > 0) {
+        setSelected(data[0].id);
+        setForm({ title: data[0].title, body: data[0].body ?? '' });
+      }
+    }
+    init();
+  }, []);
 
   function openNote(note) {
     setSelected(note.id);
