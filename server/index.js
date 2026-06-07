@@ -1,7 +1,6 @@
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
 import { networkInterfaces } from 'os';
-import { createInterface } from 'readline';
 import { createDb } from './db.js';
 import { createApp } from './app.js';
 
@@ -15,6 +14,7 @@ const C = {
   green:  '\x1b[32m',
   cyan:   '\x1b[36m',
   yellow: '\x1b[33m',
+  red:    '\x1b[31m',
   dim:    '\x1b[2m',
 };
 
@@ -50,19 +50,29 @@ function printBanner(localIp) {
 const db  = createDb(DB_PATH);
 const app = createApp(db);
 
-app.listen(PORT, '0.0.0.0', async () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   const localIp = getLocalIp();
   printBanner(localIp);
 
   const { default: open } = await import('open');
   open(`http://localhost:${PORT}`);
 
-  const rl = createInterface({ input: process.stdin });
-  rl.on('line', (line) => {
-    if (line.trim() === '1') {
+  process.stdin.resume();
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (chunk) => {
+    if (chunk.trim() === '1') {
       console.log(`\n  ${C.dim}Cerrando Agenda Financiera...${C.reset}\n`);
-      rl.close();
       process.exit(0);
     }
   });
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n  ${C.red}Error:${C.reset} el puerto ${C.bold}${PORT}${C.reset} ya está en uso.`);
+    console.error(`  Cerrá la otra instancia de Agenda Financiera primero.\n`);
+  } else {
+    console.error(`\n  ${C.red}Error al iniciar el servidor:${C.reset} ${err.message}\n`);
+  }
+  process.exit(1);
 });
