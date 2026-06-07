@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import Toast from '../components/Toast.jsx';
 
-const emptyNote = { title: '', body: '' };
+const emptyNote = { title: '', content: '' };
 
 function fmtDate(s) {
   return new Date(s).toLocaleString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -31,7 +31,7 @@ export default function Notes() {
       const data = await load();
       if (data.length > 0) {
         setSelected(data[0].id);
-        setForm({ title: data[0].title, body: data[0].body ?? '' });
+        setForm({ title: data[0].title, content: data[0].content ?? '' });
       }
     }
     init();
@@ -39,7 +39,7 @@ export default function Notes() {
 
   function openNote(note) {
     setSelected(note.id);
-    setForm({ title: note.title, body: note.body ?? '' });
+    setForm({ title: note.title, content: note.content ?? '' });
     setDirty(false);
   }
 
@@ -128,8 +128,8 @@ export default function Notes() {
             <div className="form-group">
               <label>Contenido</label>
               <textarea
-                value={form.body}
-                onChange={e => change('body', e.target.value)}
+                value={form.content}
+                onChange={e => change('content', e.target.value)}
                 rows={12}
                 placeholder="Escribe tu nota aquí..."
                 style={{ resize: 'vertical' }}
