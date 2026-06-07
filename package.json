@@ -1,0 +1,18 @@
+{
+  "name": "agenda-financiera",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node --no-warnings server/index.js",
+    "test": "node --no-warnings --test server/tests/accounts.test.js server/tests/transactions.test.js server/tests/notes.test.js server/tests/summary.test.js",
+    "build": "cd client && npm run build"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "open": "^9.1.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}
