@@ -41,6 +41,9 @@ function printBanner(localIp) {
   console.log(`  ${C.dim}El navegador se abrirá automáticamente.${C.reset}`);
   console.log('');
   console.log(`  ${C.dim}${sep}${C.reset}`);
+  console.log(`  ${C.green}${C.bold}Mantén esta ventana abierta mientras uses la app.${C.reset}`);
+  console.log(`  ${C.dim}La app funciona solo mientras este servidor esté activo.${C.reset}`);
+  console.log('');
   console.log(`  ${C.yellow}Para cerrar: escribe ${C.bold}1${C.reset}${C.yellow} y presiona Enter${C.reset}`);
   console.log(`  ${C.yellow}o cierra esta ventana con la X${C.reset}`);
   console.log(`  ${C.dim}${sep}${C.reset}`);
