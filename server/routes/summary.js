@@ -21,6 +21,9 @@ export function createSummaryRouter(db) {
     const joinCond = conds.length
       ? `AND ${conds.map(c => 't.' + c).join(' AND ')}`
       : '';
+    const transferCond = conds.length
+      ? `AND ${conds.map(c => 'tf.' + c).join(' AND ')}`
+      : '';
 
     const byAccount = db.prepare(`
       SELECT
@@ -28,12 +31,14 @@ export function createSummaryRouter(db) {
         COALESCE(SUM(CASE WHEN t.type='INCOME'  THEN t.amount ELSE 0 END), 0) AS income,
         COALESCE(SUM(CASE WHEN t.type='EXPENSE' THEN t.amount ELSE 0 END), 0) AS expenses,
         COALESCE(SUM(CASE WHEN t.type='INCOME'  THEN t.amount ELSE 0 END), 0) -
-        COALESCE(SUM(CASE WHEN t.type='EXPENSE' THEN t.amount ELSE 0 END), 0) AS balance
+        COALESCE(SUM(CASE WHEN t.type='EXPENSE' THEN t.amount ELSE 0 END), 0)
+        - COALESCE((SELECT SUM(amount_from) FROM transfers tf WHERE tf.from_account_id = a.id ${transferCond}), 0)
+        + COALESCE((SELECT SUM(amount_to)   FROM transfers tf WHERE tf.to_account_id   = a.id ${transferCond}), 0) AS balance
       FROM accounts a
       LEFT JOIN transactions t ON t.account_id = a.id ${joinCond}
       WHERE a.is_active = 1
       GROUP BY a.id
-    `).all(...params);
+    `).all(...params, ...params, ...params);
 
     res.json({
       total_income: totals.total_income,

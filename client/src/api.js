@@ -28,6 +28,11 @@ export const api = {
   updateTransaction: (id, data) => patch(`/transactions/${id}`, data),
   deleteTransaction: (id)       => del(`/transactions/${id}`),
 
+  getTransfers:      ()         => get('/transfers'),
+  createTransfer:    (data)     => post('/transfers', data),
+  updateTransfer:    (id, data) => patch(`/transfers/${id}`, data),
+  deleteTransfer:    (id)       => del(`/transfers/${id}`),
+
   getSummary:        (params)   => get(`/summary?${new URLSearchParams(params ?? {})}`),
   getDistribution:   (params)   => get(`/summary/distribution?${new URLSearchParams(params ?? {})}`),
   getTimeline:       (params)   => get(`/summary/timeline?${new URLSearchParams(params ?? {})}`),

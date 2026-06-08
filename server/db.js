@@ -40,6 +40,17 @@ export function createDb(dbPath) {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS transfers (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_account_id INTEGER NOT NULL REFERENCES accounts(id),
+      to_account_id   INTEGER NOT NULL REFERENCES accounts(id),
+      amount_from     REAL NOT NULL CHECK(amount_from > 0),
+      amount_to       REAL NOT NULL CHECK(amount_to > 0),
+      date            TEXT NOT NULL,
+      description     TEXT NOT NULL DEFAULT '',
+      created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   return db;

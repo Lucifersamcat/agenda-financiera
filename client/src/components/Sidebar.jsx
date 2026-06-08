@@ -24,6 +24,15 @@ const IconAccounts = () => (
   </svg>
 );
 
+const IconTransfers = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="17 1 21 5 17 9"/>
+    <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+    <polyline points="7 23 3 19 7 15"/>
+    <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+  </svg>
+);
+
 const IconNotes = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -36,6 +45,7 @@ const IconNotes = () => (
 const LINKS = [
   { to: '/dashboard',    label: 'Dashboard',     Icon: IconDashboard },
   { to: '/transactions', label: 'Transacciones', Icon: IconTransactions },
+  { to: '/transfers',    label: 'Transferencias', Icon: IconTransfers },
   { to: '/accounts',     label: 'Cuentas',       Icon: IconAccounts },
   { to: '/notes',        label: 'Notas',         Icon: IconNotes },
 ];

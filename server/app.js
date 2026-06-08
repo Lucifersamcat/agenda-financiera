@@ -6,6 +6,7 @@ import { createAccountsRouter } from './routes/accounts.js';
 import { createTransactionsRouter } from './routes/transactions.js';
 import { createNotesRouter } from './routes/notes.js';
 import { createSummaryRouter } from './routes/summary.js';
+import { createTransfersRouter } from './routes/transfers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -20,6 +21,7 @@ export function createApp(db) {
   app.use('/api/transactions', createTransactionsRouter(db));
   app.use('/api/notes', createNotesRouter(db));
   app.use('/api/summary', createSummaryRouter(db));
+  app.use('/api/transfers', createTransfersRouter(db));
 
   const distPath = join(__dirname, '../client/dist');
   app.use(express.static(distPath));

@@ -6,7 +6,9 @@ export function createAccountsRouter(db) {
   const withBalance = db.prepare(`
     SELECT a.*,
       COALESCE(SUM(CASE WHEN t.type='INCOME' THEN t.amount ELSE 0 END), 0) -
-      COALESCE(SUM(CASE WHEN t.type='EXPENSE' THEN t.amount ELSE 0 END), 0) AS balance
+      COALESCE(SUM(CASE WHEN t.type='EXPENSE' THEN t.amount ELSE 0 END), 0)
+      - COALESCE((SELECT SUM(amount_from) FROM transfers WHERE from_account_id = a.id), 0)
+      + COALESCE((SELECT SUM(amount_to)   FROM transfers WHERE to_account_id   = a.id), 0) AS balance
     FROM accounts a
     LEFT JOIN transactions t ON t.account_id = a.id
     WHERE a.is_active = 1
