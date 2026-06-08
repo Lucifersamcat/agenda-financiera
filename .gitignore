@@ -3,3 +3,8 @@ client/node_modules/
 client/dist/
 data/
 .env
+
+# Claude Code / productivity plugin tooling artifacts
+.claude/
+TASKS.md
+dashboard.html
