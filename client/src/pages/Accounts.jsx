@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import Toast from '../components/Toast.jsx';
 
-const DEFAULT_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
-
-const TYPE_LABELS = { bank: 'Banco', cash: 'Efectivo', savings: 'Ahorros', other: 'Otro' };
+const DEFAULT_COLORS = ['#6366f1','#059669','#f59e0b','#e11d48','#8b5cf6','#06b6d4','#f97316','#10b981'];
+const TYPE_LABELS    = { bank: 'Banco', cash: 'Efectivo', savings: 'Ahorros', other: 'Otro' };
 
 function fmt(n) {
   return Number(n ?? 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -12,18 +11,35 @@ function fmt(n) {
 
 const emptyForm = { name: '', type: 'bank', color: DEFAULT_COLORS[0] };
 
+const TypeIcon = ({ type }) => {
+  if (type === 'cash') return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="6" width="20" height="12" rx="2"/>
+      <circle cx="12" cy="12" r="2"/>
+      <path d="M6 12h.01M18 12h.01"/>
+    </svg>
+  );
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2"/>
+      <line x1="2" y1="10" x2="22" y2="10"/>
+      <line x1="6" y1="15" x2="9" y2="15"/>
+    </svg>
+  );
+};
+
 export default function Accounts() {
-  const [accounts, setAccounts]   = useState([]);
-  const [form, setForm]           = useState(emptyForm);
-  const [editing, setEditing]     = useState(null);
-  const [toast, setToast]         = useState(null);
-  const [loading, setLoading]     = useState(true);
+  const [accounts, setAccounts] = useState([]);
+  const [form, setForm]         = useState(emptyForm);
+  const [editing, setEditing]   = useState(null);
+  const [toast, setToast]       = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [archivingId, setArchivingId] = useState(null);
 
   async function load() {
     setLoading(true);
     try {
-      const data = await api.getAccounts();
-      setAccounts(data);
+      setAccounts(await api.getAccounts());
     } catch (e) {
       setToast({ message: e.message, type: 'error' });
     }
@@ -48,10 +64,10 @@ export default function Accounts() {
     try {
       if (editing) {
         await api.updateAccount(editing, form);
-        setToast({ message: 'Cuenta actualizada', type: 'info' });
+        setToast({ message: 'Cuenta actualizada' });
       } else {
         await api.createAccount(form);
-        setToast({ message: 'Cuenta creada', type: 'info' });
+        setToast({ message: 'Cuenta creada' });
       }
       cancelEdit();
       await load();
@@ -61,10 +77,10 @@ export default function Accounts() {
   }
 
   async function handleArchive(id) {
-    if (!confirm('¿Archivar esta cuenta?')) return;
+    setArchivingId(null);
     try {
       await api.deleteAccount(id);
-      setToast({ message: 'Cuenta archivada', type: 'info' });
+      setToast({ message: 'Cuenta archivada' });
       await load();
     } catch (err) {
       setToast({ message: err.message, type: 'error' });
@@ -76,86 +92,131 @@ export default function Accounts() {
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div className="page-header">
-        <h1>Cuentas</h1>
+        <h1 className="page-title">Cuentas</h1>
       </div>
 
-      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1, minWidth: 280 }}>
-          <div className="section">
-            <h3>{editing ? 'Editar cuenta' : 'Nueva cuenta'}</h3>
-            <form className="form" onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Nombre</label>
-                <input
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Ej: Banco BCP"
-                  required
-                />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Tipo</label>
-                  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-                    <option value="bank">Banco</option>
-                    <option value="cash">Efectivo</option>
-                    <option value="savings">Ahorros</option>
-                    <option value="other">Otro</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Color</label>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 4 }}>
-                    {DEFAULT_COLORS.map(c => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setForm(f => ({ ...f, color: c }))}
-                        style={{
-                          width: 24, height: 24, borderRadius: '50%',
-                          background: c, border: 'none', cursor: 'pointer',
-                          outline: form.color === c ? `3px solid ${c}` : '3px solid transparent',
-                          outlineOffset: '2px',
-                          boxShadow: form.color === c ? '0 0 0 1px #fff inset' : 'none',
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button type="submit" className="btn btn-primary">{editing ? 'Guardar' : 'Crear'}</button>
-                {editing && <button type="button" className="btn btn-ghost" onClick={cancelEdit}>Cancelar</button>}
-              </div>
-            </form>
+      <div className="accounts-layout">
+        {/* Form panel */}
+        <div className="card" style={{ marginBottom: 0 }}>
+          <div className="card-header">
+            <span className="card-title">{editing ? 'Editar cuenta' : 'Nueva cuenta'}</span>
           </div>
+          <form onSubmit={handleSubmit} style={{ padding: '18px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="form-group">
+              <label className="form-label">Nombre</label>
+              <input
+                className="form-input"
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Ej: BCP Ahorros"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Tipo</label>
+              <select
+                className="form-select"
+                value={form.type}
+                onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+              >
+                <option value="bank">Banco</option>
+                <option value="cash">Efectivo</option>
+                <option value="savings">Ahorros</option>
+                <option value="other">Otro</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Color</label>
+              <div className="color-picker" style={{ paddingTop: 2 }}>
+                {DEFAULT_COLORS.map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`color-swatch${form.color === c ? ' selected' : ''}`}
+                    style={{ background: c }}
+                    onClick={() => setForm(f => ({ ...f, color: c }))}
+                    aria-label={c}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, paddingTop: 2 }}>
+              <button type="submit" className="btn btn-primary">
+                {editing ? 'Guardar' : 'Crear cuenta'}
+              </button>
+              {editing && (
+                <button type="button" className="btn btn-ghost" onClick={cancelEdit}>
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </form>
         </div>
 
-        <div style={{ flex: 2, minWidth: 300 }}>
+        {/* Account list */}
+        <div className="card" style={{ marginBottom: 0 }}>
+          <div className="card-header">
+            <span className="card-title">Mis cuentas</span>
+          </div>
           {loading ? (
-            <p style={{ color: 'var(--text-muted)' }}>Cargando...</p>
-          ) : accounts.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>No hay cuentas. Crea una a la izquierda.</p>
-          ) : (
-            <div className="account-list">
-              {accounts.map(a => (
-                <div className="account-item" key={a.id}>
-                  <div className="account-dot" style={{ background: a.color }} />
-                  <div className="account-info">
-                    <div className="account-name">{a.name}</div>
-                    <div className="account-meta">{TYPE_LABELS[a.type] ?? a.type}</div>
-                  </div>
-                  <div className="account-balance" style={{ color: Number(a.balance) >= 0 ? 'var(--income)' : 'var(--expense)' }}>
-                    S/ {fmt(a.balance)}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn btn-ghost" style={{ padding: '5px 10px' }} onClick={() => startEdit(a)}>Editar</button>
-                    <button className="btn btn-danger"  style={{ padding: '5px 10px' }} onClick={() => handleArchive(a.id)}>Archivar</button>
+            <div style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <div className="skeleton" style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div className="skeleton" style={{ height: 12, width: '50%', marginBottom: 6 }} />
+                    <div className="skeleton" style={{ height: 10, width: '30%' }} />
                   </div>
                 </div>
               ))}
             </div>
-          )}
+          ) : accounts.length === 0 ? (
+            <div className="empty-state">
+              <svg className="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+              </svg>
+              <div className="empty-title">Sin cuentas</div>
+              <div className="empty-body">Crea tu primera cuenta a la izquierda.</div>
+            </div>
+          ) : accounts.map(a => (
+            <div
+              className={`account-item${archivingId === a.id ? ' confirming' : ''}`}
+              key={a.id}
+            >
+              <div className="account-icon" style={{ background: a.color }}>
+                <div style={{ opacity: 0.75, color: '#fff' }}>
+                  <TypeIcon type={a.type} />
+                </div>
+              </div>
+
+              <div className="account-info">
+                <div className="account-name">{a.name}</div>
+                <div className="account-type">{TYPE_LABELS[a.type] ?? a.type}</div>
+              </div>
+
+              <div className={`account-bal ${Number(a.balance) >= 0 ? 'positive' : 'negative'}`}>
+                S/ {fmt(a.balance)}
+              </div>
+
+              <div className="account-actions">
+                {archivingId === a.id ? (
+                  <div className="inline-confirm">
+                    <span className="inline-confirm-label">¿Archivar?</span>
+                    <button className="btn btn-sm btn-danger" onClick={() => handleArchive(a.id)}>Sí</button>
+                    <button className="btn btn-sm btn-ghost" onClick={() => setArchivingId(null)}>No</button>
+                  </div>
+                ) : (
+                  <>
+                    <button className="btn btn-sm btn-ghost" onClick={() => startEdit(a)}>Editar</button>
+                    <button className="btn btn-sm btn-danger-soft" onClick={() => setArchivingId(a.id)}>Archivar</button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

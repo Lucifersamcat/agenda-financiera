@@ -7,8 +7,10 @@ export default function Toast({ message, type = 'info', onClose }) {
   }, [onClose]);
 
   return (
-    <div className={`toast${type === 'error' ? ' error' : ''}`}>
-      {message}
+    <div className="toast-wrap">
+      <div className={`toast toast-${type === 'error' ? 'error' : 'info'}`}>
+        {message}
+      </div>
     </div>
   );
 }

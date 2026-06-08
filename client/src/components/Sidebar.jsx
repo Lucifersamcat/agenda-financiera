@@ -1,24 +1,68 @@
 import { NavLink } from 'react-router-dom';
 
-const links = [
-  { to: '/dashboard',    label: 'Dashboard',     icon: '📊' },
-  { to: '/transactions', label: 'Transacciones', icon: '💳' },
-  { to: '/accounts',     label: 'Cuentas',       icon: '🏦' },
-  { to: '/notes',        label: 'Notas',         icon: '📝' },
+const IconDashboard = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+  </svg>
+);
+
+const IconTransactions = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M7 16V4m0 0L3 8m4-4 4 4"/>
+    <path d="M17 8v12m0 0 4-4m-4 4-4-4"/>
+  </svg>
+);
+
+const IconAccounts = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="2"/>
+    <line x1="2" y1="10" x2="22" y2="10"/>
+    <line x1="6" y1="15" x2="9" y2="15"/>
+  </svg>
+);
+
+const IconNotes = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+  </svg>
+);
+
+const LINKS = [
+  { to: '/dashboard',    label: 'Dashboard',     Icon: IconDashboard },
+  { to: '/transactions', label: 'Transacciones', Icon: IconTransactions },
+  { to: '/accounts',     label: 'Cuentas',       Icon: IconAccounts },
+  { to: '/notes',        label: 'Notas',         Icon: IconNotes },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">💰 Agenda Financiera</div>
-      <nav style={{ padding: '8px 0' }}>
-        {links.map(({ to, label, icon }) => (
+    <aside className={`sidebar${isOpen ? ' open' : ''}`}>
+      <div className="sidebar-logo">
+        <div className="sidebar-logo-mark">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </div>
+        <span className="sidebar-logo-text">Agenda</span>
+      </div>
+
+      <nav className="sidebar-nav">
+        {LINKS.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
-            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+            onClick={onClose}
           >
-            <span>{icon}</span>
+            <Icon />
             <span>{label}</span>
           </NavLink>
         ))}

@@ -5,15 +5,16 @@ import Toast from '../components/Toast.jsx';
 const emptyNote = { title: '', content: '' };
 
 function fmtDate(s) {
-  return new Date(s).toLocaleString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(s).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export default function Notes() {
-  const [notes, setNotes]     = useState([]);
+  const [notes, setNotes]       = useState([]);
   const [selected, setSelected] = useState(null);
-  const [form, setForm]       = useState(emptyNote);
-  const [dirty, setDirty]     = useState(false);
-  const [toast, setToast]     = useState(null);
+  const [form, setForm]         = useState(emptyNote);
+  const [dirty, setDirty]       = useState(false);
+  const [toast, setToast]       = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function load() {
     try {
@@ -41,12 +42,14 @@ export default function Notes() {
     setSelected(note.id);
     setForm({ title: note.title, content: note.content ?? '' });
     setDirty(false);
+    setConfirmDelete(false);
   }
 
   function newNote() {
     setSelected(null);
     setForm(emptyNote);
     setDirty(false);
+    setConfirmDelete(false);
   }
 
   function change(field, value) {
@@ -59,11 +62,11 @@ export default function Notes() {
     try {
       if (selected) {
         await api.updateNote(selected, form);
-        setToast({ message: 'Nota guardada', type: 'info' });
+        setToast({ message: 'Nota guardada' });
       } else {
         const created = await api.createNote(form);
         setSelected(created.id);
-        setToast({ message: 'Nota creada', type: 'info' });
+        setToast({ message: 'Nota creada' });
       }
       setDirty(false);
       await load();
@@ -74,10 +77,10 @@ export default function Notes() {
 
   async function handleDelete() {
     if (!selected) return;
-    if (!confirm('¿Eliminar esta nota?')) return;
+    setConfirmDelete(false);
     try {
       await api.deleteNote(selected);
-      setToast({ message: 'Nota eliminada', type: 'info' });
+      setToast({ message: 'Nota eliminada' });
       newNote();
       await load();
     } catch (err) {
@@ -92,66 +95,90 @@ export default function Notes() {
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div className="page-header">
-        <h1>Notas</h1>
-        <button className="btn btn-primary" onClick={newNote}>+ Nueva nota</button>
+        <h1 className="page-title">Notas</h1>
+        <button className="btn btn-primary" onClick={newNote}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Nueva nota
+        </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-        <div className="notes-grid" style={{ width: 240, flexShrink: 0 }}>
-          {notes.length === 0 && (
-            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sin notas aún.</p>
-          )}
-          {notes.map(n => (
-            <div
-              key={n.id}
-              className="note-card"
-              style={{ borderColor: selected === n.id ? 'var(--primary)' : undefined }}
-              onClick={() => openNote(n)}
-            >
-              <h4>{n.title}</h4>
-              <p>{n.body || ' '}</p>
-              <div className="note-date">{fmtDate(n.updated_at)}</div>
+      <div className="notes-layout">
+        {/* Note list */}
+        <div>
+          {notes.length === 0 ? (
+            <div className="empty-state" style={{ padding: '32px 16px' }}>
+              <div className="empty-title">Sin notas</div>
+              <div className="empty-body">Crea tu primera nota.</div>
             </div>
-          ))}
+          ) : (
+            <div className="notes-list-wrap">
+              {notes.map(n => (
+                <div
+                  key={n.id}
+                  className={`note-item${selected === n.id ? ' selected' : ''}`}
+                  onClick={() => openNote(n)}
+                >
+                  <div className="note-item-title">{n.title}</div>
+                  {n.content && <div className="note-item-preview">{n.content}</div>}
+                  <div className="note-item-date">{fmtDate(n.updated_at)}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="section" style={{ flex: 1 }}>
-          <div className="form">
-            <div className="form-group">
-              <label>Título</label>
-              <input
-                value={form.title}
-                onChange={e => change('title', e.target.value)}
-                placeholder="Título de la nota"
-              />
-            </div>
-            <div className="form-group">
-              <label>Contenido</label>
-              <textarea
-                value={form.content}
-                onChange={e => change('content', e.target.value)}
-                rows={12}
-                placeholder="Escribe tu nota aquí..."
-                style={{ resize: 'vertical' }}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary" onClick={handleSave} disabled={!dirty && !!selected}>
-                {selected ? 'Guardar cambios' : 'Crear nota'}
-              </button>
-              {selected && (
-                <button className="btn btn-danger" onClick={handleDelete}>Eliminar</button>
-              )}
-              {selected && dirty && (
-                <button className="btn btn-ghost" onClick={() => { openNote(currentNote); }}>Descartar</button>
-              )}
-            </div>
+        {/* Editor */}
+        <div className="notes-editor">
+          <div className="notes-editor-bar">
             {currentNote && (
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                Última edición: {fmtDate(currentNote.updated_at)}
-              </div>
+              <span className="notes-editor-meta">
+                Editado {fmtDate(currentNote.updated_at)}
+              </span>
             )}
+
+            {selected && (
+              confirmDelete ? (
+                <div className="inline-confirm">
+                  <span className="inline-confirm-label">¿Eliminar?</span>
+                  <button className="btn btn-sm btn-danger" onClick={handleDelete}>Sí</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => setConfirmDelete(false)}>No</button>
+                </div>
+              ) : (
+                <button className="btn btn-sm btn-danger-soft" onClick={() => setConfirmDelete(true)}>
+                  Eliminar
+                </button>
+              )
+            )}
+
+            {dirty && selected && (
+              <button className="btn btn-sm btn-ghost" onClick={() => { openNote(currentNote); }}>
+                Descartar
+              </button>
+            )}
+
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={handleSave}
+              disabled={!dirty && !!selected}
+            >
+              {selected ? 'Guardar' : 'Crear nota'}
+            </button>
           </div>
+
+          <input
+            className="notes-title-input"
+            value={form.title}
+            onChange={e => change('title', e.target.value)}
+            placeholder="Título"
+          />
+          <textarea
+            className="notes-content-input"
+            value={form.content}
+            onChange={e => change('content', e.target.value)}
+            placeholder="Comienza a escribir..."
+          />
         </div>
       </div>
     </div>
