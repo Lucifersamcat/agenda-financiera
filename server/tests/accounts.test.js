@@ -75,4 +75,26 @@ describe('Accounts', () => {
     const list = await req.get('/api/accounts');
     assert.ok(!list.body.some(a => a.id === id));
   });
+
+  test('GET /api/accounts/archived lists archived accounts and restore recovers them', async () => {
+    const created = await req.post('/api/accounts')
+      .send({ name: 'Archivable', currency: 'DOP' });
+    const id = created.body.id;
+    await req.delete(`/api/accounts/${id}`);
+
+    const archived = await req.get('/api/accounts/archived');
+    assert.equal(archived.status, 200);
+    assert.ok(archived.body.some(a => a.id === id));
+
+    const restored = await req.post(`/api/accounts/${id}/restore`);
+    assert.equal(restored.status, 200);
+    assert.equal(restored.body.is_active, 1);
+
+    const list = await req.get('/api/accounts');
+    assert.ok(list.body.some(a => a.id === id));
+  });
+
+  test('POST /api/accounts/:id/restore returns 404 for active or unknown accounts', async () => {
+    assert.equal((await req.post('/api/accounts/9999/restore')).status, 404);
+  });
 });

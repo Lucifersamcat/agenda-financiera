@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { fmtMoney } from '../format.js';
 import { IconEdit, IconTrash } from '../components/Icons.jsx';
+import { useSettings } from '../settings-context.jsx';
 import Toast from '../components/Toast.jsx';
 
 const DEFAULT_COLORS = ['#6366f1','#059669','#f59e0b','#e11d48','#8b5cf6','#06b6d4','#f97316','#10b981'];
-const TYPE_LABELS    = { bank: 'Banco', cash: 'Efectivo', savings: 'Ahorros', other: 'Otro' };
 const CURRENCIES     = ['DOP', 'USD', 'EUR'];
 
-const emptyForm = { name: '', type: 'bank', currency: 'DOP', color: DEFAULT_COLORS[0] };
+const baseForm = { name: '', type: 'bank', color: DEFAULT_COLORS[0] };
 
 const TypeIcon = ({ type }) => {
   if (type === 'cash') return (
@@ -28,6 +28,9 @@ const TypeIcon = ({ type }) => {
 };
 
 export default function Accounts() {
+  const { settings, accountTypes } = useSettings();
+  const typeName = (slug) => accountTypes.find(t => t.slug === slug)?.name ?? slug;
+  const emptyForm = { ...baseForm, currency: settings.default_currency };
   const [accounts, setAccounts] = useState([]);
   const [form, setForm]         = useState(emptyForm);
   const [editing, setEditing]   = useState(null);
@@ -123,10 +126,7 @@ export default function Accounts() {
                   value={form.type}
                   onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
                 >
-                  <option value="bank">Banco</option>
-                  <option value="cash">Efectivo</option>
-                  <option value="savings">Ahorros</option>
-                  <option value="other">Otro</option>
+                  {accountTypes.map(t => <option key={t.slug} value={t.slug}>{t.name}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -208,7 +208,7 @@ export default function Accounts() {
 
               <div className="account-info">
                 <div className="account-name">{a.name}</div>
-                <div className="account-type">{TYPE_LABELS[a.type] ?? a.type} · {a.currency}</div>
+                <div className="account-type">{typeName(a.type)} · {a.currency}</div>
               </div>
 
               <div className={`account-bal ${Number(a.balance) >= 0 ? 'positive' : 'negative'}`}>

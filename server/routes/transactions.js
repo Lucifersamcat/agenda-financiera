@@ -4,8 +4,18 @@ import { isValidDate } from './validate.js';
 export function createTransactionsRouter(db) {
   const router = Router();
 
+  // Distinct tags across all transactions, for filter dropdowns.
+  router.get('/tags', (_req, res) => {
+    const rows = db.prepare(`
+      SELECT DISTINCT je.value AS tag
+      FROM transactions t, json_each(t.tags) je
+      ORDER BY tag
+    `).all();
+    res.json(rows.map(r => r.tag));
+  });
+
   router.get('/', (req, res) => {
-    const { account_id, type, category, from, to, q } = req.query;
+    const { account_id, type, category, from, to, q, tag } = req.query;
 
     const page  = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
     const limit = Math.min(200, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
@@ -21,6 +31,10 @@ export function createTransactionsRouter(db) {
     if (q) {
       conds.push(`t.description LIKE ? ESCAPE '\\'`);
       params.push(`%${String(q).replace(/[\\%_]/g, m => '\\' + m)}%`);
+    }
+    if (tag) {
+      conds.push(`EXISTS (SELECT 1 FROM json_each(t.tags) je WHERE je.value = ?)`);
+      params.push(String(tag));
     }
 
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
@@ -60,8 +74,17 @@ export function createTransactionsRouter(db) {
     return value && value.length <= 50 ? value : undefined;
   }
 
+  // null = no enviado; undefined = inválido; si no, JSON listo para guardar.
+  function normalizeTags(tags) {
+    if (tags === undefined) return null;
+    if (!Array.isArray(tags)) return undefined;
+    const clean = [...new Set(tags.map(t => String(t).trim().toLowerCase()).filter(Boolean))];
+    if (clean.length > 20 || clean.some(t => t.length > 30)) return undefined;
+    return JSON.stringify(clean);
+  }
+
   router.post('/', (req, res) => {
-    const { account_id, type, amount, date, description, metadata, category } = req.body;
+    const { account_id, type, amount, date, description, metadata, category, tags } = req.body;
 
     if (!account_id || !type || !amount || !date) {
       return res.status(400).json({ error: 'account_id, type, amount, date son requeridos' });
@@ -80,6 +103,10 @@ export function createTransactionsRouter(db) {
     if (cat === undefined) {
       return res.status(400).json({ error: 'category debe ser un texto de máximo 50 caracteres' });
     }
+    const tagsJson = normalizeTags(tags);
+    if (tagsJson === undefined) {
+      return res.status(400).json({ error: 'tags debe ser una lista de hasta 20 textos de máximo 30 caracteres' });
+    }
 
     const account = db.prepare(
       `SELECT id FROM accounts WHERE id = ? AND is_active = 1`
@@ -87,13 +114,14 @@ export function createTransactionsRouter(db) {
     if (!account) return res.status(404).json({ error: 'Cuenta no encontrada' });
 
     const result = db.prepare(`
-      INSERT INTO transactions (account_id, type, amount, date, description, category, metadata)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO transactions (account_id, type, amount, date, description, category, metadata, tags)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       Number(account_id), type, Number(amount), date,
       description ?? '',
       cat ?? 'otros',
-      metadata ? JSON.stringify(metadata) : '{}'
+      metadata ? JSON.stringify(metadata) : '{}',
+      tagsJson ?? '[]'
     );
 
     const id = Number(result.lastInsertRowid);
@@ -105,7 +133,7 @@ export function createTransactionsRouter(db) {
     const t = db.prepare(`SELECT * FROM transactions WHERE id = ?`).get(id);
     if (!t) return res.status(404).json({ error: 'Transacción no encontrada' });
 
-    const { account_id, type, amount, date, description, metadata, category } = req.body;
+    const { account_id, type, amount, date, description, metadata, category, tags } = req.body;
 
     if (type && !['INCOME', 'EXPENSE'].includes(type)) {
       return res.status(400).json({ error: 'type debe ser INCOME o EXPENSE' });
@@ -113,6 +141,10 @@ export function createTransactionsRouter(db) {
     const cat = normalizeCategory(category);
     if (cat === undefined) {
       return res.status(400).json({ error: 'category debe ser un texto de máximo 50 caracteres' });
+    }
+    const tagsJson = normalizeTags(tags);
+    if (tagsJson === undefined) {
+      return res.status(400).json({ error: 'tags debe ser una lista de hasta 20 textos de máximo 30 caracteres' });
     }
     if (amount !== undefined && !(Number(amount) > 0)) {
       return res.status(400).json({ error: 'amount debe ser positivo' });
@@ -128,7 +160,7 @@ export function createTransactionsRouter(db) {
     }
 
     db.prepare(`
-      UPDATE transactions SET account_id=?, type=?, amount=?, date=?, description=?, category=?, metadata=?
+      UPDATE transactions SET account_id=?, type=?, amount=?, date=?, description=?, category=?, metadata=?, tags=?
       WHERE id=?
     `).run(
       account_id !== undefined ? Number(account_id) : t.account_id,
@@ -138,6 +170,7 @@ export function createTransactionsRouter(db) {
       description ?? t.description,
       cat ?? t.category,
       metadata ? JSON.stringify(metadata) : t.metadata,
+      tagsJson ?? t.tags,
       id
     );
 

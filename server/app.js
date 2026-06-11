@@ -7,6 +7,13 @@ import { createTransactionsRouter } from './routes/transactions.js';
 import { createNotesRouter } from './routes/notes.js';
 import { createSummaryRouter } from './routes/summary.js';
 import { createTransfersRouter } from './routes/transfers.js';
+import { createSettingsRouter } from './routes/settings.js';
+import { createDataRouter } from './routes/data.js';
+import {
+  createAccountTypesRouter,
+  createCategoriesRouter,
+  createCustomFieldsRouter,
+} from './routes/catalog.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -22,6 +29,11 @@ export function createApp(db) {
   app.use('/api/notes', createNotesRouter(db));
   app.use('/api/summary', createSummaryRouter(db));
   app.use('/api/transfers', createTransfersRouter(db));
+  app.use('/api/settings', createSettingsRouter(db));
+  app.use('/api/data', createDataRouter(db));
+  app.use('/api/account-types', createAccountTypesRouter(db));
+  app.use('/api/categories', createCategoriesRouter(db));
+  app.use('/api/custom-fields', createCustomFieldsRouter(db));
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 
