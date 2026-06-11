@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api.js';
+import { fmtMoney } from '../format.js';
 import Toast from '../components/Toast.jsx';
-
-function fmt(n) {
-  return Number(n ?? 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 const emptyForm = {
   account_id: '',
@@ -54,6 +51,15 @@ export default function Transactions() {
 
   useEffect(() => { loadAccounts(); }, []);
   useEffect(() => { loadTx(); }, [loadTx]);
+
+  useEffect(() => {
+    if (!showForm) return;
+    const onKey = e => { if (e.key === 'Escape') cancelForm(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  const selectedAccount = accounts.find(a => String(a.id) === form.account_id);
 
   function startEdit(tx) {
     setEditing(tx.id);
@@ -166,7 +172,9 @@ export default function Transactions() {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label className="form-label">Monto (S/)</label>
+                      <label className="form-label">
+                        Monto{selectedAccount ? ` (${selectedAccount.currency})` : ''}
+                      </label>
                       <input
                         className="form-input"
                         type="number"
@@ -316,7 +324,7 @@ export default function Transactions() {
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <span className={`amount ${tx.type === 'INCOME' ? 'positive' : 'negative'}`}>
-                      {tx.type === 'INCOME' ? '+' : '−'}S/ {fmt(tx.amount)}
+                      {tx.type === 'INCOME' ? '+' : '−'}{fmtMoney(tx.amount, tx.account_currency)}
                     </span>
                   </td>
                   <td>

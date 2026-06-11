@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
+import { fmtMoney } from '../format.js';
 import Toast from '../components/Toast.jsx';
 
 const DEFAULT_COLORS = ['#6366f1','#059669','#f59e0b','#e11d48','#8b5cf6','#06b6d4','#f97316','#10b981'];
 const TYPE_LABELS    = { bank: 'Banco', cash: 'Efectivo', savings: 'Ahorros', other: 'Otro' };
+const CURRENCIES     = ['DOP', 'USD', 'EUR'];
 
-function fmt(n) {
-  return Number(n ?? 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-const emptyForm = { name: '', type: 'bank', color: DEFAULT_COLORS[0] };
+const emptyForm = { name: '', type: 'bank', currency: 'DOP', color: DEFAULT_COLORS[0] };
 
 const TypeIcon = ({ type }) => {
   if (type === 'cash') return (
@@ -50,7 +48,7 @@ export default function Accounts() {
 
   function startEdit(a) {
     setEditing(a.id);
-    setForm({ name: a.name, type: a.type, color: a.color });
+    setForm({ name: a.name, type: a.type, currency: a.currency, color: a.color });
   }
 
   function cancelEdit() {
@@ -113,18 +111,30 @@ export default function Accounts() {
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Tipo</label>
-              <select
-                className="form-select"
-                value={form.type}
-                onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-              >
-                <option value="bank">Banco</option>
-                <option value="cash">Efectivo</option>
-                <option value="savings">Ahorros</option>
-                <option value="other">Otro</option>
-              </select>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Tipo</label>
+                <select
+                  className="form-select"
+                  value={form.type}
+                  onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                >
+                  <option value="bank">Banco</option>
+                  <option value="cash">Efectivo</option>
+                  <option value="savings">Ahorros</option>
+                  <option value="other">Otro</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Moneda</label>
+                <select
+                  className="form-select"
+                  value={form.currency}
+                  onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
+                >
+                  {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
             </div>
 
             <div className="form-group">
@@ -194,11 +204,11 @@ export default function Accounts() {
 
               <div className="account-info">
                 <div className="account-name">{a.name}</div>
-                <div className="account-type">{TYPE_LABELS[a.type] ?? a.type}</div>
+                <div className="account-type">{TYPE_LABELS[a.type] ?? a.type} · {a.currency}</div>
               </div>
 
               <div className={`account-bal ${Number(a.balance) >= 0 ? 'positive' : 'negative'}`}>
-                S/ {fmt(a.balance)}
+                {fmtMoney(a.balance, a.currency)}
               </div>
 
               <div className="account-actions">

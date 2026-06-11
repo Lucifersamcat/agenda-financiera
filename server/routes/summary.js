@@ -78,7 +78,7 @@ export function createSummaryRouter(db) {
     const joinCond = conds.length ? `AND ${conds.join(' AND ')}` : '';
 
     const rows = db.prepare(`
-      SELECT a.name, a.color,
+      SELECT a.name, a.color, a.currency,
         COALESCE(SUM(CASE WHEN t.type='EXPENSE' THEN t.amount ELSE 0 END), 0) AS expenses
       FROM accounts a
       LEFT JOIN transactions t ON t.account_id = a.id ${joinCond}

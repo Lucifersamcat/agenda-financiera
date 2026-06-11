@@ -5,7 +5,7 @@ import Toast from '../components/Toast.jsx';
 const emptyNote = { title: '', content: '' };
 
 function fmtDate(s) {
-  return new Date(s).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(s).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export default function Notes() {

@@ -1,10 +1,14 @@
 import { Router } from 'express';
+import { isValidDate } from './validate.js';
 
 export function createTransactionsRouter(db) {
   const router = Router();
 
   router.get('/', (req, res) => {
-    const { account_id, type, from, to, page = 1, limit = 50 } = req.query;
+    const { account_id, type, from, to } = req.query;
+
+    const page  = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(200, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
 
     const conds = [];
     const params = [];
@@ -15,22 +19,22 @@ export function createTransactionsRouter(db) {
     if (to)         { conds.push('t.date <= ?');       params.push(to); }
 
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (page - 1) * limit;
 
     const total = db.prepare(
       `SELECT COUNT(*) AS c FROM transactions t ${where}`
     ).get(...params).c;
 
     const data = db.prepare(`
-      SELECT t.*, a.name AS account_name, a.color AS account_color
+      SELECT t.*, a.name AS account_name, a.color AS account_color, a.currency AS account_currency
       FROM transactions t
       JOIN accounts a ON a.id = t.account_id
       ${where}
       ORDER BY t.date DESC, t.created_at DESC
       LIMIT ? OFFSET ?
-    `).all(...params, Number(limit), offset);
+    `).all(...params, limit, offset);
 
-    res.json({ data, total, page: Number(page), limit: Number(limit) });
+    res.json({ data, total, page, limit });
   });
 
   router.post('/', (req, res) => {
@@ -42,8 +46,11 @@ export function createTransactionsRouter(db) {
     if (!['INCOME', 'EXPENSE'].includes(type)) {
       return res.status(400).json({ error: 'type debe ser INCOME o EXPENSE' });
     }
-    if (Number(amount) <= 0) {
+    if (!(Number(amount) > 0)) {
       return res.status(400).json({ error: 'amount debe ser positivo' });
+    }
+    if (!isValidDate(date)) {
+      return res.status(400).json({ error: 'date debe tener formato YYYY-MM-DD' });
     }
 
     const account = db.prepare(
@@ -73,6 +80,18 @@ export function createTransactionsRouter(db) {
 
     if (type && !['INCOME', 'EXPENSE'].includes(type)) {
       return res.status(400).json({ error: 'type debe ser INCOME o EXPENSE' });
+    }
+    if (amount !== undefined && !(Number(amount) > 0)) {
+      return res.status(400).json({ error: 'amount debe ser positivo' });
+    }
+    if (date !== undefined && !isValidDate(date)) {
+      return res.status(400).json({ error: 'date debe tener formato YYYY-MM-DD' });
+    }
+    if (account_id !== undefined) {
+      const account = db.prepare(
+        `SELECT id FROM accounts WHERE id = ? AND is_active = 1`
+      ).get(Number(account_id));
+      if (!account) return res.status(404).json({ error: 'Cuenta no encontrada' });
     }
 
     db.prepare(`

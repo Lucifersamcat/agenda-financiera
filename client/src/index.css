@@ -287,6 +287,10 @@ input, select, textarea { font-family: inherit; }
 .stat-value.positive { color: var(--income); }
 .stat-value.negative { color: var(--expense); }
 
+/* When a card stacks one value per currency */
+.stat-value.sm { font-size: 17px; }
+.stat-value + .stat-value { margin-top: 3px; }
+
 .stat-sub {
   font-size: 11px;
   color: var(--text-3);

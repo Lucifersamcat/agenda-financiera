@@ -20,13 +20,26 @@ export function createAccountsRouter(db) {
     res.json(withBalance.all());
   });
 
+  function normalizeCurrency(currency) {
+    if (currency === undefined || currency === null) return null;
+    const code = String(currency).trim().toUpperCase();
+    return /^[A-Z]{3}$/.test(code) ? code : undefined;
+  }
+
   router.post('/', (req, res) => {
     const { name, type, currency, color } = req.body;
-    if (!name) return res.status(400).json({ error: 'name es requerido' });
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ error: 'name es requerido' });
+    }
+
+    const code = normalizeCurrency(currency);
+    if (code === undefined) {
+      return res.status(400).json({ error: 'currency debe ser un código de 3 letras (ej. DOP, USD)' });
+    }
 
     const result = db.prepare(
       `INSERT INTO accounts (name, type, currency, color) VALUES (?, ?, ?, ?)`
-    ).run(name, type ?? null, currency ?? 'DOP', color ?? '#3B82F6');
+    ).run(String(name).trim(), type ?? null, code ?? 'DOP', color ?? '#3B82F6');
 
     const id = Number(result.lastInsertRowid);
     const account = db.prepare(`SELECT *, 0 AS balance FROM accounts WHERE id = ?`).get(id);
@@ -41,12 +54,17 @@ export function createAccountsRouter(db) {
     if (!existing) return res.status(404).json({ error: 'Cuenta no encontrada' });
 
     const { name, type, currency, color } = req.body;
+    const code = normalizeCurrency(currency);
+    if (code === undefined) {
+      return res.status(400).json({ error: 'currency debe ser un código de 3 letras (ej. DOP, USD)' });
+    }
+
     db.prepare(
       `UPDATE accounts SET name=?, type=?, currency=?, color=? WHERE id=?`
     ).run(
       name ?? existing.name,
       type ?? existing.type,
-      currency ?? existing.currency,
+      code ?? existing.currency,
       color ?? existing.color,
       id
     );

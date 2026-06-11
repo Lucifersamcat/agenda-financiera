@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api.js';
+import { fmtMoney } from '../format.js';
 import Toast from '../components/Toast.jsx';
-
-function fmt(n) {
-  return Number(n ?? 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 const emptyForm = {
   from_account_id: '',
@@ -53,6 +50,13 @@ export default function Transfers() {
 
   useEffect(() => { loadAccounts(); }, []);
   useEffect(() => { loadTransfers(); }, [loadTransfers]);
+
+  useEffect(() => {
+    if (!showForm) return;
+    const onKey = e => { if (e.key === 'Escape') cancelForm(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   const fromAcct = accounts.find(a => String(a.id) === form.from_account_id);
   const toAcct   = accounts.find(a => String(a.id) === form.to_account_id);
@@ -298,9 +302,9 @@ export default function Transfers() {
                   </td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <span className="amount">
-                      {tr.from_currency} {fmt(tr.amount_from)}
+                      {fmtMoney(tr.amount_from, tr.from_currency)}
                       {tr.from_currency !== tr.to_currency && (
-                        <span className="text-muted text-sm"> → {tr.to_currency} {fmt(tr.amount_to)}</span>
+                        <span className="text-muted text-sm"> → {fmtMoney(tr.amount_to, tr.to_currency)}</span>
                       )}
                     </span>
                   </td>

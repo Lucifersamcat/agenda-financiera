@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts';
 import { api } from '../api.js';
+import { fmtMoney, fmtNumber } from '../format.js';
 
 const COLORS = ['#6366f1', '#059669', '#f59e0b', '#e11d48', '#8b5cf6', '#06b6d4'];
 
@@ -59,17 +60,26 @@ function fillTimeline(data, { groupBy, from, to }) {
 function fmtLabel(period, groupBy) {
   if (groupBy === 'day') {
     const d = new Date(period + 'T12:00:00');
-    return d.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric' });
+    return d.toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric' });
   }
   const [y, m] = period.split('-');
-  return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('es-PE', { month: 'short', year: '2-digit' });
-}
-
-function fmt(n) {
-  return Number(n ?? 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('es-DO', { month: 'short', year: '2-digit' });
 }
 
 function fmtK(v) { return v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v; }
+
+// Accounts can be in different currencies, so totals only make sense per currency.
+function totalsByCurrency(byAccount) {
+  const map = new Map();
+  for (const a of byAccount) {
+    const row = map.get(a.currency) ?? { currency: a.currency, income: 0, expenses: 0 };
+    row.income += Number(a.income);
+    row.expenses += Number(a.expenses);
+    map.set(a.currency, row);
+  }
+  const rows = [...map.values()].filter(r => r.income !== 0 || r.expenses !== 0);
+  return rows.length ? rows : [{ currency: 'DOP', income: 0, expenses: 0 }];
+}
 
 const TooltipStyle = {
   contentStyle: {
@@ -121,9 +131,13 @@ export default function Dashboard() {
   }));
 
   const pieData = distribution.map(a => ({
-    name:  a.name,
-    value: Number(a.expenses),
+    name:     a.name,
+    value:    Number(a.expenses),
+    currency: a.currency,
   }));
+
+  const totals = totalsByCurrency(summary?.by_account ?? []);
+  const statValueClass = totals.length > 1 ? 'stat-value sm' : 'stat-value';
 
   return (
     <div className="page">
@@ -156,10 +170,11 @@ export default function Dashboard() {
           <div className="stats-grid">
             <div className="stat-card primary">
               <div className="stat-label">Balance</div>
-              <div className={`stat-value${Number(summary?.balance) >= 0 ? ' positive' : ' negative'}`}
-                style={{ color: undefined }}>
-                S/ {fmt(summary?.balance)}
-              </div>
+              {totals.map(t => (
+                <div key={t.currency} className={statValueClass}>
+                  {fmtMoney(t.income - t.expenses, t.currency)}
+                </div>
+              ))}
               <div className="stat-sub">{PERIODS[periodIdx].label} actual</div>
             </div>
 
@@ -168,7 +183,11 @@ export default function Dashboard() {
                 <span className="stat-dot" style={{ background: '#059669' }} />
                 Ingresos
               </div>
-              <div className="stat-value positive">S/ {fmt(summary?.total_income)}</div>
+              {totals.map(t => (
+                <div key={t.currency} className={`${statValueClass} positive`}>
+                  {fmtMoney(t.income, t.currency)}
+                </div>
+              ))}
             </div>
 
             <div className="stat-card">
@@ -176,7 +195,11 @@ export default function Dashboard() {
                 <span className="stat-dot" style={{ background: '#e11d48' }} />
                 Egresos
               </div>
-              <div className="stat-value negative">S/ {fmt(summary?.total_expenses)}</div>
+              {totals.map(t => (
+                <div key={t.currency} className={`${statValueClass} negative`}>
+                  {fmtMoney(t.expenses, t.currency)}
+                </div>
+              ))}
             </div>
 
             {(summary?.by_account ?? []).map(a => (
@@ -186,7 +209,7 @@ export default function Dashboard() {
                   {a.name}
                 </div>
                 <div className={`stat-value${Number(a.balance) >= 0 ? ' positive' : ' negative'}`}>
-                  S/ {fmt(a.balance)}
+                  {fmtMoney(a.balance, a.currency)}
                 </div>
               </div>
             ))}
@@ -199,7 +222,7 @@ export default function Dashboard() {
                 <BarChart data={barData} margin={{ top: 0, right: 0, left: -8, bottom: 0 }} barCategoryGap="32%">
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={fmtK} width={38} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={(v) => `S/ ${fmt(v)}`} {...TooltipStyle} />
+                  <Tooltip formatter={(v) => fmtNumber(v)} {...TooltipStyle} />
                   <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: 12, color: '#64748b', paddingTop: 8 }} />
                   <Bar dataKey="Ingresos" fill="#059669" radius={[3, 3, 0, 0]} maxBarSize={28} />
                   <Bar dataKey="Egresos"  fill="#e11d48" radius={[3, 3, 0, 0]} maxBarSize={28} />
@@ -229,7 +252,10 @@ export default function Dashboard() {
                         <Cell key={i} fill={COLORS[i % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(v) => `S/ ${fmt(v)}`} {...TooltipStyle} />
+                    <Tooltip
+                      formatter={(v, _name, entry) => fmtMoney(v, entry?.payload?.currency)}
+                      {...TooltipStyle}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               )}
@@ -275,7 +301,7 @@ export default function Dashboard() {
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <span className={`amount ${tx.type === 'INCOME' ? 'positive' : 'negative'}`}>
-                            {tx.type === 'INCOME' ? '+' : '−'}S/ {fmt(tx.amount)}
+                            {tx.type === 'INCOME' ? '+' : '−'}{fmtMoney(tx.amount, tx.account_currency)}
                           </span>
                         </td>
                       </tr>
