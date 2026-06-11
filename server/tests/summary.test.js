@@ -15,9 +15,9 @@ describe('Summary', () => {
       .send({ name: 'Caja', type: 'efectivo', currency: 'DOP', color: '#10B981' });
     const id = acc.body.id;
 
-    await req.post('/api/transactions').send({ account_id: id, type: 'INCOME',  amount: 10000, date: '2026-06-01' });
-    await req.post('/api/transactions').send({ account_id: id, type: 'EXPENSE', amount: 3000,  date: '2026-06-02' });
-    await req.post('/api/transactions').send({ account_id: id, type: 'EXPENSE', amount: 2000,  date: '2026-06-03' });
+    await req.post('/api/transactions').send({ account_id: id, type: 'INCOME',  amount: 10000, date: '2026-06-01', category: 'salario' });
+    await req.post('/api/transactions').send({ account_id: id, type: 'EXPENSE', amount: 3000,  date: '2026-06-02', category: 'comida' });
+    await req.post('/api/transactions').send({ account_id: id, type: 'EXPENSE', amount: 2000,  date: '2026-06-03', category: 'comida' });
   });
 
   test('GET /api/summary returns correct totals', async () => {
@@ -41,10 +41,19 @@ describe('Summary', () => {
     assert.equal(res.body.total_expenses, 3000);
   });
 
-  test('GET /api/summary/distribution returns accounts with expenses', async () => {
+  test('GET /api/summary/distribution groups expenses by category and currency', async () => {
     const res = await req.get('/api/summary/distribution');
     assert.equal(res.status, 200);
     assert.ok(Array.isArray(res.body));
+    assert.equal(res.body.length, 1);
+    assert.equal(res.body[0].category, 'comida');
+    assert.equal(res.body[0].currency, 'DOP');
     assert.equal(res.body[0].expenses, 5000);
+  });
+
+  test('GET /api/summary/distribution respects date filter', async () => {
+    const res = await req.get('/api/summary/distribution?from=2026-06-03');
+    assert.equal(res.body.length, 1);
+    assert.equal(res.body[0].expenses, 2000);
   });
 });

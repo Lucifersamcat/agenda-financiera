@@ -23,9 +23,19 @@ export function createApp(db) {
   app.use('/api/summary', createSummaryRouter(db));
   app.use('/api/transfers', createTransfersRouter(db));
 
+  app.use('/api', (_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
+
   const distPath = join(__dirname, '../client/dist');
   app.use(express.static(distPath));
   app.get('*', (_req, res) => res.sendFile(join(distPath, 'index.html')));
+
+  app.use((err, _req, res, _next) => {
+    if (err.type === 'entity.parse.failed') {
+      return res.status(400).json({ error: 'JSON inválido' });
+    }
+    console.error(err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  });
 
   return app;
 }

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node --no-warnings server/index.js",
-    "test": "node --no-warnings --test server/tests/accounts.test.js server/tests/transactions.test.js server/tests/notes.test.js server/tests/summary.test.js server/tests/transfers.test.js",
+    "test": "node --no-warnings --test \"server/tests/*.test.js\"",
     "build": "cd client && npm run build"
   },
   "dependencies": {

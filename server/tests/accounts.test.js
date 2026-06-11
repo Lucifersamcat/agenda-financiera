@@ -44,6 +44,28 @@ describe('Accounts', () => {
     assert.equal(res.body.name, 'Banco BHD');
   });
 
+  test('POST /api/accounts returns 400 for invalid currency code', async () => {
+    const res = await req.post('/api/accounts')
+      .send({ name: 'Rara', currency: 'PESOS' });
+    assert.equal(res.status, 400);
+    assert.ok(res.body.error);
+  });
+
+  test('POST /api/accounts normalizes currency to uppercase', async () => {
+    const res = await req.post('/api/accounts')
+      .send({ name: 'Dólares', currency: 'usd' });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.currency, 'USD');
+  });
+
+  test('PATCH /api/accounts/:id returns 400 for invalid currency code', async () => {
+    const created = await req.post('/api/accounts')
+      .send({ name: 'Euro', currency: 'EUR' });
+    const res = await req.patch(`/api/accounts/${created.body.id}`)
+      .send({ currency: 'X' });
+    assert.equal(res.status, 400);
+  });
+
   test('DELETE /api/accounts/:id soft-deletes (removed from GET)', async () => {
     const created = await req.post('/api/accounts')
       .send({ name: 'Temporal', type: 'efectivo', currency: 'DOP', color: '#EF4444' });

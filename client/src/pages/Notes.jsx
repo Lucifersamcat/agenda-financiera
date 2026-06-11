@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
+import { fmtDate } from '../format.js';
+import { IconPlus } from '../components/Icons.jsx';
 import Toast from '../components/Toast.jsx';
 
 const emptyNote = { title: '', content: '' };
-
-function fmtDate(s) {
-  return new Date(s).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
-}
 
 export default function Notes() {
   const [notes, setNotes]       = useState([]);
@@ -95,11 +93,12 @@ export default function Notes() {
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div className="page-header">
-        <h1 className="page-title">Notas</h1>
+        <div>
+          <h1 className="page-title">Notas</h1>
+          <p className="page-sub">Apuntes rápidos y recordatorios</p>
+        </div>
         <button className="btn btn-primary" onClick={newNote}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
+          <IconPlus />
           Nueva nota
         </button>
       </div>

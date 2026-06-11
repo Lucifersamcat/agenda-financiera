@@ -69,22 +69,22 @@ export function createSummaryRouter(db) {
     res.json(rows);
   });
 
+  // Expenses grouped by category. Split by currency so amounts in different
+  // monedas are never added together.
   router.get('/distribution', (req, res) => {
     const { from, to } = req.query;
-    const conds = [];
+    const conds = [`t.type = 'EXPENSE'`, 'a.is_active = 1'];
     const params = [];
     if (from) { conds.push('t.date >= ?'); params.push(from); }
     if (to)   { conds.push('t.date <= ?'); params.push(to); }
-    const joinCond = conds.length ? `AND ${conds.join(' AND ')}` : '';
 
     const rows = db.prepare(`
-      SELECT a.name, a.color,
-        COALESCE(SUM(CASE WHEN t.type='EXPENSE' THEN t.amount ELSE 0 END), 0) AS expenses
-      FROM accounts a
-      LEFT JOIN transactions t ON t.account_id = a.id ${joinCond}
-      WHERE a.is_active = 1
-      GROUP BY a.id
-      HAVING expenses > 0
+      SELECT t.category, a.currency, SUM(t.amount) AS expenses
+      FROM transactions t
+      JOIN accounts a ON a.id = t.account_id
+      WHERE ${conds.join(' AND ')}
+      GROUP BY t.category, a.currency
+      ORDER BY expenses DESC
     `).all(...params);
 
     res.json(rows);

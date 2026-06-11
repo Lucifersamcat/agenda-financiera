@@ -5,7 +5,7 @@ html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   background: var(--bg);
   color: var(--text);
@@ -225,10 +225,16 @@ input, select, textarea { font-family: inherit; }
 }
 
 .page-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.03em;
+}
+
+.page-sub {
+  font-size: 13px;
+  color: var(--text-3);
+  margin-top: 2px;
 }
 
 /* === STAT CARDS === */
@@ -277,7 +283,7 @@ input, select, textarea { font-family: inherit; }
 }
 
 .stat-value {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.03em;
@@ -286,6 +292,10 @@ input, select, textarea { font-family: inherit; }
 }
 .stat-value.positive { color: var(--income); }
 .stat-value.negative { color: var(--expense); }
+
+/* When a card stacks one value per currency */
+.stat-value.sm { font-size: 17px; }
+.stat-value + .stat-value { margin-top: 3px; }
 
 .stat-sub {
   font-size: 11px;
@@ -348,6 +358,102 @@ input, select, textarea { font-family: inherit; }
   margin-bottom: 18px;
 }
 
+.chart-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.chart-title-row .chart-title { margin-bottom: 18px; }
+
+/* Donut with centered total */
+.donut-wrap { position: relative; }
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  text-align: center;
+}
+.donut-center-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.donut-center-value {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.legend-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.legend-name { color: var(--text-2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legend-value {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Dashboard bottom row: recent transactions + account balances */
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.balance-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.balance-row:last-child { border-bottom: none; }
+.balance-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.balance-currency {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  padding: 1px 5px;
+}
+.balance-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.balance-amount.positive { color: var(--income); }
+.balance-amount.negative { color: var(--expense); }
+
 /* === CARD (section container) === */
 .card {
   background: var(--surface);
@@ -372,6 +478,40 @@ input, select, textarea { font-family: inherit; }
   color: var(--text);
   letter-spacing: -0.01em;
 }
+
+.card-count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: var(--r-full);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+/* Per-currency sums of the filtered list (card header, right side) */
+.totals-inline {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.totals-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.totals-item {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.totals-item.positive { color: var(--income); }
+.totals-item.negative { color: var(--expense); }
+.totals-item.net      { color: var(--text-2); }
 
 /* === TABLE === */
 .table-wrap { overflow-x: auto; }
@@ -407,29 +547,20 @@ input, select, textarea { font-family: inherit; }
 .table tbody tr { transition: background var(--t); }
 .table tbody tr:hover td { background: #fafbfc; }
 
-/* Table actions — positioned absolutely, zero layout width */
-.table tbody tr { position: relative; }
-
+/* Table actions — compact icon buttons in their own column */
 .table thead th:last-child,
 .table tbody td:last-child {
-  width: 0;
-  min-width: 0;
-  padding: 0;
-  overflow: visible;
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  padding-right: 14px;
 }
 
 .table-actions {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  gap: 4px;
-  opacity: 0;
+  display: inline-flex;
+  gap: 2px;
+  opacity: .4;
   transition: opacity var(--t);
-  background: var(--surface);
-  padding-left: 12px;
-  white-space: nowrap;
 }
 .table tbody tr:hover .table-actions { opacity: 1; }
 
@@ -486,6 +617,15 @@ input, select, textarea { font-family: inherit; }
   align-items: center;
   gap: 7px;
   white-space: nowrap;
+}
+
+.cat-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--text-2);
 }
 
 /* === FILTERS BAR === */
@@ -617,6 +757,67 @@ input[type="date"].form-input { cursor: pointer; }
   font-size: 12px;
   border-radius: var(--r-sm);
 }
+
+/* Icon-only button */
+.icon-btn {
+  width: 28px; height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all var(--t);
+  flex-shrink: 0;
+}
+.icon-btn:hover { background: var(--bg); color: var(--text); }
+.icon-btn.danger:hover { background: var(--danger-soft); color: var(--danger); }
+
+/* === CHIPS (date presets, currency toggles) === */
+.presets-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: -6px 0 16px;
+}
+
+.chip-group { display: flex; gap: 4px; }
+
+.chip {
+  height: 26px;
+  padding: 0 11px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all var(--t);
+  white-space: nowrap;
+}
+.chip:hover { border-color: var(--border-strong); color: var(--text); }
+.chip.active {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.chip.clear { border-style: dashed; color: var(--text-3); }
+.chip.clear:hover { color: var(--danger); border-color: var(--danger); }
+
+/* === SEARCH BOX === */
+.search-box { position: relative; }
+.search-box svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
+}
+.search-box .form-input { padding-left: 31px; }
 
 /* === SLIDE-OVER MODAL === */
 .modal-backdrop {
@@ -770,24 +971,17 @@ input[type="date"].form-input { cursor: pointer; }
 .account-bal.positive { color: var(--income); }
 .account-bal.negative { color: var(--expense); }
 
-/* Actions float over balance on hover */
 .account-actions {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
   display: flex;
-  gap: 4px;
-  opacity: 0;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: .4;
   transition: opacity var(--t);
-  background: var(--surface);
-  padding-left: 10px;
 }
-.account-item:hover .account-actions { opacity: 1; }
-.account-item:hover .account-bal     { opacity: 0; }
-/* Keep confirm state always visible */
+.account-item:hover .account-actions,
 .account-item.confirming .account-actions { opacity: 1; }
-.account-item.confirming .account-bal     { opacity: 0; }
+/* Hide the balance only while confirming, to make room for the prompt */
+.account-item.confirming .account-bal { display: none; }
 
 /* Color picker */
 .color-picker {
@@ -1010,6 +1204,7 @@ input[type="date"].form-input { cursor: pointer; }
 
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .charts-grid { grid-template-columns: 1fr; }
+  .bottom-grid { grid-template-columns: 1fr; }
   .accounts-layout { grid-template-columns: 1fr; }
   .notes-layout { grid-template-columns: 1fr; }
 

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { isValidDate } from './validate.js';
 
 export function createTransfersRouter(db) {
   const router = Router();
@@ -25,8 +26,11 @@ export function createTransfersRouter(db) {
     if (Number(from_account_id) === Number(to_account_id)) {
       return res.status(400).json({ error: 'La cuenta origen y destino deben ser distintas' });
     }
-    if (Number(amount_from) <= 0) {
+    if (!(Number(amount_from) > 0)) {
       return res.status(400).json({ error: 'amount_from debe ser positivo' });
+    }
+    if (!isValidDate(date)) {
+      return res.status(400).json({ error: 'date debe tener formato YYYY-MM-DD' });
     }
 
     const from = db.prepare(`SELECT * FROM accounts WHERE id = ? AND is_active = 1`).get(Number(from_account_id));
@@ -67,8 +71,11 @@ export function createTransfersRouter(db) {
     if (from_account_id === to_account_id) {
       return res.status(400).json({ error: 'La cuenta origen y destino deben ser distintas' });
     }
-    if (amount_from <= 0) {
+    if (!(amount_from > 0)) {
       return res.status(400).json({ error: 'amount_from debe ser positivo' });
+    }
+    if (req.body.date !== undefined && !isValidDate(date)) {
+      return res.status(400).json({ error: 'date debe tener formato YYYY-MM-DD' });
     }
 
     const from = db.prepare(`SELECT * FROM accounts WHERE id = ? AND is_active = 1`).get(from_account_id);
