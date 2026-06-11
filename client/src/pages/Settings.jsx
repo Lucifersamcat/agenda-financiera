@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../api.js';
 import { fmtMoney, fmtDate } from '../format.js';
 import { useSettings } from '../settings-context.jsx';
+import { CategoriesEditor, AccountTypesEditor, CustomFieldsEditor } from '../components/CatalogEditors.jsx';
 import Toast from '../components/Toast.jsx';
 
 const CURRENCIES = ['DOP', 'USD', 'EUR'];
@@ -114,7 +115,7 @@ export default function Settings() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Ajustes</h1>
-          <p className="page-sub">Preferencias, cuentas archivadas y tus datos</p>
+          <p className="page-sub">Preferencias, categorías, tipos de cuenta, campos personalizados y tus datos</p>
         </div>
       </div>
 
@@ -169,6 +170,11 @@ export default function Settings() {
             </select>
           </div>
         </div>
+
+        {/* Catálogos editables */}
+        <CategoriesEditor setToast={setToast} />
+        <AccountTypesEditor setToast={setToast} />
+        <CustomFieldsEditor setToast={setToast} />
 
         {/* Cuentas archivadas */}
         <div className="card">

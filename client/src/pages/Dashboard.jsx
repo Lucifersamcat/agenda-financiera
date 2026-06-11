@@ -5,8 +5,7 @@ import {
 } from 'recharts';
 import { api } from '../api.js';
 import { fmtMoney, fmtNumber, fmtDate } from '../format.js';
-import { categoryInfo } from '../categories.js';
-import { useSettings } from '../settings-context.jsx';
+import { useSettings, categoryInfo } from '../settings-context.jsx';
 
 const PERIODS = [
   { label: 'Semana', days: 7 },
@@ -99,7 +98,7 @@ const TooltipStyle = {
 const PERIOD_IDX = { week: 0, month: 1, year: 2 };
 
 export default function Dashboard() {
-  const { settings } = useSettings();
+  const { settings, categories } = useSettings();
   const [periodIdx, setPeriodIdx] = useState(PERIOD_IDX[settings.dashboard_period] ?? 1);
   const [summary, setSummary]     = useState(null);
   const [distribution, setDistribution] = useState([]);
@@ -145,8 +144,13 @@ export default function Dashboard() {
   const pieData = distribution
     .filter(r => r.currency === activeCurrency)
     .map(r => {
-      const cat = categoryInfo(r.category);
-      return { name: cat.label, value: Number(r.expenses), color: cat.color, currency: r.currency };
+      const cat = categoryInfo(categories, r.category);
+      return {
+        name: r.name ?? cat.name,
+        value: Number(r.expenses),
+        color: r.color ?? cat.color,
+        currency: r.currency,
+      };
     });
   const pieTotal = pieData.reduce((s, r) => s + r.value, 0);
 
@@ -324,7 +328,7 @@ export default function Dashboard() {
                     </thead>
                     <tbody>
                       {recent.map(tx => {
-                        const cat = categoryInfo(tx.category);
+                        const cat = categoryInfo(categories, tx.category);
                         return (
                           <tr key={tx.id}>
                             <td className="text-muted text-sm" style={{ whiteSpace: 'nowrap' }}>{fmtDate(tx.date)}</td>
@@ -334,7 +338,7 @@ export default function Dashboard() {
                             <td>
                               <span className="cat-cell">
                                 <span className="acct-dot" style={{ background: cat.color }} />
-                                {cat.label}
+                                {cat.name}
                               </span>
                             </td>
                             <td style={{ textAlign: 'right' }}>

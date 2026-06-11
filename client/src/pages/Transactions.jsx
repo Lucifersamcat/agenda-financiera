@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api.js';
 import { fmtMoney, fmtDate } from '../format.js';
-import { categoriesFor, categoryInfo, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../categories.js';
+import { useSettings, categoriesFor, categoryInfo, customFieldsFor } from '../settings-context.jsx';
 import { IconPlus, IconClose, IconEdit, IconTrash, IconSearch } from '../components/Icons.jsx';
-import { useSettings } from '../settings-context.jsx';
 import Toast from '../components/Toast.jsx';
 
 const emptyForm = {
@@ -13,9 +12,11 @@ const emptyForm = {
   amount: '',
   date: new Date().toISOString().slice(0, 10),
   description: '',
+  tags: [],
+  metadata: {},
 };
 
-const emptyFilters = { type: '', account_id: '', category: '', from: '', to: '' };
+const emptyFilters = { type: '', account_id: '', category: '', tag: '', from: '', to: '' };
 
 function toDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -42,10 +43,48 @@ const PRESETS = [
   } },
 ];
 
+function parseJson(raw, fallback) {
+  try { return JSON.parse(raw) ?? fallback; } catch { return fallback; }
+}
+
+function CustomFieldInput({ field, value, onChange }) {
+  const options = parseJson(field.options, []);
+  if (field.type === 'select') {
+    return (
+      <select className="form-select" value={value ?? ''} onChange={e => onChange(e.target.value)}>
+        <option value="">—</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
+  if (field.type === 'boolean') {
+    return (
+      <label className="checkbox-label">
+        <input
+          type="checkbox"
+          checked={value === true}
+          onChange={e => onChange(e.target.checked)}
+        />
+        Sí
+      </label>
+    );
+  }
+  return (
+    <input
+      className="form-input"
+      type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+      step={field.type === 'number' ? 'any' : undefined}
+      value={value ?? ''}
+      onChange={e => onChange(e.target.value)}
+    />
+  );
+}
+
 export default function Transactions() {
-  const { settings } = useSettings();
+  const { settings, categories, customFields } = useSettings();
   const [transactions, setTransactions] = useState([]);
   const [accounts, setAccounts]         = useState([]);
+  const [allTags, setAllTags]           = useState([]);
   const [total, setTotal]               = useState(0);
   const [totals, setTotals]             = useState([]);
   const [page, setPage]                 = useState(1);
@@ -55,6 +94,7 @@ export default function Transactions() {
   const [search, setSearch]       = useState('');
   const [q, setQ]                 = useState('');
   const [form, setForm]           = useState(emptyForm);
+  const [tagInput, setTagInput]   = useState('');
   const [editing, setEditing]     = useState(null);
   const [showForm, setShowForm]   = useState(false);
   const [saving, setSaving]       = useState(false);
@@ -64,6 +104,10 @@ export default function Transactions() {
 
   const loadAccounts = async () => {
     try { setAccounts(await api.getAccounts()); } catch {}
+  };
+
+  const loadTags = async () => {
+    try { setAllTags(await api.getTags()); } catch {}
   };
 
   const loadTx = useCallback(async () => {
@@ -80,7 +124,7 @@ export default function Transactions() {
     setLoading(false);
   }, [page, filters, q, LIMIT]);
 
-  useEffect(() => { loadAccounts(); }, []);
+  useEffect(() => { loadAccounts(); loadTags(); }, []);
   useEffect(() => { loadTx(); }, [loadTx]);
 
   // Debounce del buscador
@@ -97,6 +141,8 @@ export default function Transactions() {
   });
 
   const selectedAccount = accounts.find(a => String(a.id) === form.account_id);
+  const formCategories  = categoriesFor(categories, form.type);
+  const formFields      = customFieldsFor(customFields, form.type);
 
   function setFilter(patch) {
     setFilters(f => ({ ...f, ...patch }));
@@ -112,26 +158,59 @@ export default function Transactions() {
       amount: String(tx.amount),
       date: tx.date,
       description: tx.description ?? '',
+      tags: parseJson(tx.tags, []),
+      metadata: parseJson(tx.metadata, {}),
     });
+    setTagInput('');
     setShowForm(true);
   }
 
   function cancelForm() {
     setEditing(null);
     setForm({ ...emptyForm, account_id: accounts[0]?.id ? String(accounts[0].id) : '' });
+    setTagInput('');
     setShowForm(false);
   }
 
   function openNew() {
     setEditing(null);
     setForm({ ...emptyForm, account_id: accounts[0]?.id ? String(accounts[0].id) : '' });
+    setTagInput('');
     setShowForm(true);
+  }
+
+  function addTag(raw) {
+    const tag = raw.trim().toLowerCase();
+    if (!tag) return;
+    setForm(f => f.tags.includes(tag) ? f : { ...f, tags: [...f.tags, tag] });
+    setTagInput('');
+  }
+
+  function removeTag(tag) {
+    setForm(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }));
+  }
+
+  function onTagKeyDown(e) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === 'Backspace' && !tagInput && form.tags.length) {
+      removeTag(form.tags[form.tags.length - 1]);
+    }
+  }
+
+  function setMeta(key, value) {
+    setForm(f => ({ ...f, metadata: { ...f.metadata, [key]: value } }));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (saving) return;
     setSaving(true);
+    // Valores vacíos no se guardan en metadata.
+    const metadata = Object.fromEntries(
+      Object.entries(form.metadata).filter(([, v]) => v !== '' && v !== null && v !== undefined && v !== false)
+    );
     const payload = {
       account_id:  Number(form.account_id),
       type:        form.type,
@@ -139,6 +218,8 @@ export default function Transactions() {
       amount:      Number(form.amount),
       date:        form.date,
       description: form.description.trim(),
+      tags:        tagInput.trim() ? [...form.tags, tagInput.trim().toLowerCase()] : form.tags,
+      metadata,
     };
     try {
       if (editing) {
@@ -150,7 +231,7 @@ export default function Transactions() {
       }
       cancelForm();
       setPage(1);
-      await loadTx();
+      await Promise.all([loadTx(), loadTags()]);
     } catch (err) {
       setToast({ message: err.message, type: 'error' });
     }
@@ -162,7 +243,7 @@ export default function Transactions() {
     try {
       await api.deleteTransaction(id);
       setToast({ message: 'Transacción eliminada' });
-      await loadTx();
+      await Promise.all([loadTx(), loadTags()]);
     } catch (err) {
       setToast({ message: err.message, type: 'error' });
     }
@@ -170,11 +251,9 @@ export default function Transactions() {
 
   const pages = Math.ceil(total / LIMIT);
   const hasFilters = q || Object.values(filters).some(v => v);
-  const filterCategories = filters.type === 'INCOME'
-    ? INCOME_CATEGORIES
-    : filters.type === 'EXPENSE'
-      ? EXPENSE_CATEGORIES
-      : [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES.filter(c => c.id !== 'otros')];
+  const filterCategories = filters.type
+    ? categoriesFor(categories, filters.type)
+    : categories;
 
   return (
     <div className="page">
@@ -229,8 +308,8 @@ export default function Transactions() {
                       value={form.category}
                       onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                     >
-                      {categoriesFor(form.type).map(c => (
-                        <option key={c.id} value={c.id}>{c.label}</option>
+                      {formCategories.map(c => (
+                        <option key={c.slug} value={c.slug}>{c.name}</option>
                       ))}
                     </select>
                   </div>
@@ -272,6 +351,40 @@ export default function Transactions() {
                       placeholder="Opcional"
                     />
                   </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Etiquetas</label>
+                    <div className="tags-input" onClick={e => e.currentTarget.querySelector('input')?.focus()}>
+                      {form.tags.map(tag => (
+                        <span className="tag-chip" key={tag}>
+                          {tag}
+                          <button type="button" onClick={() => removeTag(tag)} aria-label={`Quitar ${tag}`}>×</button>
+                        </span>
+                      ))}
+                      <input
+                        value={tagInput}
+                        onChange={e => setTagInput(e.target.value)}
+                        onKeyDown={onTagKeyDown}
+                        onBlur={() => addTag(tagInput)}
+                        placeholder={form.tags.length ? '' : 'Escribe y presiona Enter'}
+                        list="known-tags"
+                      />
+                      <datalist id="known-tags">
+                        {allTags.map(t => <option key={t} value={t} />)}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  {formFields.map(field => (
+                    <div className="form-group" key={field.id}>
+                      <label className="form-label">{field.name}</label>
+                      <CustomFieldInput
+                        field={field}
+                        value={form.metadata[field.key]}
+                        onChange={v => setMeta(field.key, v)}
+                      />
+                    </div>
+                  ))}
                 </div>
               </form>
             </div>
@@ -301,7 +414,7 @@ export default function Transactions() {
 
       {/* Filters */}
       <div className="filters-bar">
-        <div className="form-group" style={{ flex: '1 1 180px', minWidth: 160 }}>
+        <div className="form-group" style={{ flex: '1 1 170px', minWidth: 150 }}>
           <label className="form-label">Buscar</label>
           <div className="search-box">
             <IconSearch />
@@ -313,7 +426,7 @@ export default function Transactions() {
             />
           </div>
         </div>
-        <div className="form-group" style={{ minWidth: 110 }}>
+        <div className="form-group" style={{ minWidth: 105 }}>
           <label className="form-label">Tipo</label>
           <select className="form-select" value={filters.type}
             onChange={e => setFilter({ type: e.target.value, category: '' })}>
@@ -322,15 +435,25 @@ export default function Transactions() {
             <option value="EXPENSE">Egresos</option>
           </select>
         </div>
-        <div className="form-group" style={{ minWidth: 130 }}>
+        <div className="form-group" style={{ minWidth: 125 }}>
           <label className="form-label">Categoría</label>
           <select className="form-select" value={filters.category}
             onChange={e => setFilter({ category: e.target.value })}>
             <option value="">Todas</option>
-            {filterCategories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            {filterCategories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
           </select>
         </div>
-        <div className="form-group" style={{ minWidth: 130 }}>
+        {allTags.length > 0 && (
+          <div className="form-group" style={{ minWidth: 110 }}>
+            <label className="form-label">Etiqueta</label>
+            <select className="form-select" value={filters.tag}
+              onChange={e => setFilter({ tag: e.target.value })}>
+              <option value="">Todas</option>
+              {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        )}
+        <div className="form-group" style={{ minWidth: 125 }}>
           <label className="form-label">Cuenta</label>
           <select className="form-select" value={filters.account_id}
             onChange={e => setFilter({ account_id: e.target.value })}>
@@ -421,17 +544,25 @@ export default function Transactions() {
                   </td>
                 </tr>
               ) : transactions.map(tx => {
-                const cat = categoryInfo(tx.category);
+                const cat = categoryInfo(categories, tx.category);
+                const txTags = parseJson(tx.tags, []);
                 return (
                   <tr key={tx.id} className={deletingId === tx.id ? 'row-confirming' : ''}>
                     <td className="text-muted text-sm" style={{ whiteSpace: 'nowrap' }}>{fmtDate(tx.date)}</td>
-                    <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {tx.description || <span className="text-muted">—</span>}
+                    <td style={{ maxWidth: 220 }}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {tx.description || <span className="text-muted">—</span>}
+                      </div>
+                      {txTags.length > 0 && (
+                        <div className="row-tags">
+                          {txTags.map(t => <span className="tag-chip sm" key={t}>{t}</span>)}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <span className="cat-cell">
                         <span className="acct-dot" style={{ background: cat.color }} />
-                        {cat.label}
+                        {cat.name}
                       </span>
                     </td>
                     <td>

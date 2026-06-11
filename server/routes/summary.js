@@ -79,9 +79,10 @@ export function createSummaryRouter(db) {
     if (to)   { conds.push('t.date <= ?'); params.push(to); }
 
     const rows = db.prepare(`
-      SELECT t.category, a.currency, SUM(t.amount) AS expenses
+      SELECT t.category, c.name, c.color, a.currency, SUM(t.amount) AS expenses
       FROM transactions t
       JOIN accounts a ON a.id = t.account_id
+      LEFT JOIN categories c ON c.slug = t.category
       WHERE ${conds.join(' AND ')}
       GROUP BY t.category, a.currency
       ORDER BY expenses DESC

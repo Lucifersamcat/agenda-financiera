@@ -91,6 +91,33 @@ describe('Transactions', () => {
     assert.equal(res.body.totals[0].income, 0);
   });
 
+  test('POST /api/transactions stores tags and custom metadata', async () => {
+    const res = await req.post('/api/transactions').send({
+      account_id: accountId, type: 'EXPENSE', amount: 250, date: '2026-06-07',
+      tags: [' Viaje ', 'trabajo', 'viaje'],
+      metadata: { metodo_pago: 'Tarjeta' },
+    });
+    assert.equal(res.status, 201);
+    assert.deepEqual(JSON.parse(res.body.tags), ['viaje', 'trabajo']);
+    assert.equal(JSON.parse(res.body.metadata).metodo_pago, 'Tarjeta');
+  });
+
+  test('GET /api/transactions filters by tag and lists distinct tags', async () => {
+    const filtered = await req.get('/api/transactions?tag=viaje');
+    assert.equal(filtered.body.total, 1);
+    assert.ok(JSON.parse(filtered.body.data[0].tags).includes('viaje'));
+
+    const tags = await req.get('/api/transactions/tags');
+    assert.deepEqual(tags.body, ['trabajo', 'viaje']);
+  });
+
+  test('POST /api/transactions rejects invalid tags', async () => {
+    const res = await req.post('/api/transactions').send({
+      account_id: accountId, type: 'EXPENSE', amount: 10, date: '2026-06-07', tags: 'no-es-lista',
+    });
+    assert.equal(res.status, 400);
+  });
+
   test('POST /api/transactions returns 400 for malformed date', async () => {
     const res = await req.post('/api/transactions').send({
       account_id: accountId, type: 'EXPENSE', amount: 100, date: '01/06/2026',

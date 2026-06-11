@@ -51,4 +51,23 @@ export const api = {
   exportData: ()     => get('/data/export'),
   importData: (data) => post('/data/import', data),
   wipeData:   ()     => post('/data/wipe', { confirm: true }),
+
+  getTags: () => get('/transactions/tags'),
+
+  getAccountTypes:   ()         => get('/account-types'),
+  createAccountType: (data)     => post('/account-types', data),
+  updateAccountType: (id, data) => patch(`/account-types/${id}`, data),
+  deleteAccountType: (id, reassign_to) =>
+    request(`/account-types/${id}`, { method: 'DELETE', body: JSON.stringify({ reassign_to }) }),
+
+  getCategories:   ()         => get('/categories'),
+  createCategory:  (data)     => post('/categories', data),
+  updateCategory:  (id, data) => patch(`/categories/${id}`, data),
+  deleteCategory:  (id, reassign_to) =>
+    request(`/categories/${id}`, { method: 'DELETE', body: JSON.stringify({ reassign_to }) }),
+
+  getCustomFields:   ()         => get('/custom-fields'),
+  createCustomField: (data)     => post('/custom-fields', data),
+  updateCustomField: (id, data) => patch(`/custom-fields/${id}`, data),
+  deleteCustomField: (id)       => del(`/custom-fields/${id}`),
 };

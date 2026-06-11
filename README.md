@@ -7,11 +7,11 @@ Funciona de forma local — el servidor sirve la app y guarda los datos en una b
 ## Características
 
 - **Cuentas** — crea cuentas en distintas monedas (DOP, USD, EUR) con su color, y consulta el balance de cada una. Cada monto se muestra siempre en la moneda de su cuenta.
-- **Transacciones** — registra ingresos y egresos con su categoría (comida, transporte, vivienda, salario, …). Filtros por tipo, categoría, cuenta y rango de fechas, atajos de período (hoy/semana/mes/año), búsqueda por descripción y totales de la vista filtrada.
+- **Transacciones** — registra ingresos y egresos con su categoría, etiquetas y campos personalizados (método de pago, o los que tú definas). Filtros por tipo, categoría, etiqueta, cuenta y rango de fechas, atajos de período (hoy/semana/mes/año), búsqueda por descripción y totales de la vista filtrada.
 - **Transferencias entre cuentas** — mueve dinero de una cuenta a otra, incluso entre monedas distintas. Son neutrales para las estadísticas (no cuentan como ingreso ni egreso), solo ajustan los balances.
 - **Notas** — apuntes rápidos.
 - **Dashboard** — totales de ingresos/egresos por moneda, balances por cuenta, gráfico de ingresos vs egresos y distribución de egresos por categoría, con períodos de semana/mes/año.
-- **Ajustes** — moneda por defecto, período inicial del dashboard y filas por página; restaurar cuentas archivadas; exportar/restaurar backup en JSON y borrado total con confirmación.
+- **Ajustes** — preferencias (moneda por defecto, período inicial del dashboard, filas por página); catálogos editables de categorías (nombre, color, ingreso/egreso) y tipos de cuenta; campos personalizados para transacciones (texto, número, lista, fecha, sí/no); restaurar cuentas archivadas; exportar/restaurar backup en JSON y borrado total con confirmación.
 
 ## Tecnologías
 

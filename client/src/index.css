@@ -813,6 +813,99 @@ input[type="date"].form-input { cursor: pointer; }
 .chip.clear { border-style: dashed; color: var(--text-3); }
 .chip.clear:hover { color: var(--danger); border-color: var(--danger); }
 
+/* === TAGS === */
+.tags-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  cursor: text;
+  transition: border-color var(--t), box-shadow var(--t);
+}
+.tags-input:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.1);
+}
+.tags-input input {
+  flex: 1;
+  min-width: 90px;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  font-family: inherit;
+  background: transparent;
+  height: 26px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.tag-chip button {
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  opacity: .6;
+}
+.tag-chip button:hover { opacity: 1; }
+.tag-chip.sm { font-size: 10.5px; padding: 1px 7px; }
+
+.row-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+
+/* === CATALOG EDITORS (Ajustes) === */
+.catalog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.catalog-form-actions { display: flex; gap: 6px; }
+
+.kind-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  padding: 1px 6px;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.checkbox-label input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+
 /* === SEARCH BOX === */
 .search-box { position: relative; }
 .search-box svg {

@@ -8,11 +8,14 @@ export function createDataRouter(db) {
       app: 'agenda-financiera',
       version: 1,
       exported_at: new Date().toISOString(),
-      accounts:     db.prepare(`SELECT * FROM accounts ORDER BY id`).all(),
-      transactions: db.prepare(`SELECT * FROM transactions ORDER BY id`).all(),
-      transfers:    db.prepare(`SELECT * FROM transfers ORDER BY id`).all(),
-      notes:        db.prepare(`SELECT * FROM notes ORDER BY id`).all(),
-      settings:     db.prepare(`SELECT * FROM settings ORDER BY key`).all(),
+      accounts:      db.prepare(`SELECT * FROM accounts ORDER BY id`).all(),
+      transactions:  db.prepare(`SELECT * FROM transactions ORDER BY id`).all(),
+      transfers:     db.prepare(`SELECT * FROM transfers ORDER BY id`).all(),
+      notes:         db.prepare(`SELECT * FROM notes ORDER BY id`).all(),
+      settings:      db.prepare(`SELECT * FROM settings ORDER BY key`).all(),
+      account_types: db.prepare(`SELECT * FROM account_types ORDER BY id`).all(),
+      categories:    db.prepare(`SELECT * FROM categories ORDER BY id`).all(),
+      custom_fields: db.prepare(`SELECT * FROM custom_fields ORDER BY id`).all(),
     });
   });
 
@@ -29,8 +32,18 @@ export function createDataRouter(db) {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     const insertTx = db.prepare(`
-      INSERT INTO transactions (id, account_id, type, amount, date, description, category, metadata, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO transactions (id, account_id, type, amount, date, description, category, metadata, tags, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const insertAccountType = db.prepare(`
+      INSERT INTO account_types (id, slug, name, position) VALUES (?, ?, ?, ?)
+    `);
+    const insertCategory = db.prepare(`
+      INSERT INTO categories (id, slug, name, color, kind, position) VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const insertCustomField = db.prepare(`
+      INSERT INTO custom_fields (id, key, name, type, options, applies_to, position)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     const insertTransfer = db.prepare(`
       INSERT INTO transfers (id, from_account_id, to_account_id, amount_from, amount_to, date, description, created_at)
@@ -65,7 +78,7 @@ export function createDataRouter(db) {
         insertTx.run(
           t.id ?? null, t.account_id, t.type, t.amount, t.date,
           t.description ?? '', t.category ?? 'otros',
-          t.metadata ?? '{}', t.created_at ?? now()
+          t.metadata ?? '{}', t.tags ?? '[]', t.created_at ?? now()
         );
       }
       for (const t of data.transfers) {
@@ -83,6 +96,26 @@ export function createDataRouter(db) {
       }
       for (const s of data.settings ?? []) {
         if (s?.key) upsertSetting.run(String(s.key), String(s.value ?? ''));
+      }
+
+      // Catálogos: solo se reemplazan si el backup los trae (backups viejos no).
+      if (Array.isArray(data.account_types) && data.account_types.length) {
+        db.exec('DELETE FROM account_types');
+        for (const t of data.account_types) {
+          insertAccountType.run(t.id ?? null, t.slug, t.name, t.position ?? 0);
+        }
+      }
+      if (Array.isArray(data.categories) && data.categories.length) {
+        db.exec('DELETE FROM categories');
+        for (const c of data.categories) {
+          insertCategory.run(c.id ?? null, c.slug, c.name, c.color ?? '#94a3b8', c.kind ?? 'EXPENSE', c.position ?? 0);
+        }
+      }
+      if (Array.isArray(data.custom_fields)) {
+        db.exec('DELETE FROM custom_fields');
+        for (const f of data.custom_fields) {
+          insertCustomField.run(f.id ?? null, f.key, f.name, f.type, f.options ?? '[]', f.applies_to ?? 'BOTH', f.position ?? 0);
+        }
       }
 
       db.exec('COMMIT');
