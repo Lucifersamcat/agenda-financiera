@@ -26,3 +26,11 @@ export function fmtMoney(n, currency = 'DOP') {
   const formatter = currencyFormatter(currency);
   return formatter ? formatter.format(Number(n ?? 0)) : `${currency} ${fmtNumber(n)}`;
 }
+
+// Accepts both plain dates (2026-06-11) and SQLite datetimes (2026-06-11 09:30:00).
+export function fmtDate(s) {
+  if (!s) return '';
+  const d = new Date(String(s).slice(0, 10) + 'T12:00:00');
+  if (Number.isNaN(d.getTime())) return String(s);
+  return d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' });
+}

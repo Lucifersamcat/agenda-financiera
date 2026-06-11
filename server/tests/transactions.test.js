@@ -54,6 +54,43 @@ describe('Transactions', () => {
     assert.ok(res.body.data.every(t => t.type === 'EXPENSE'));
   });
 
+  test('POST /api/transactions stores category and defaults to otros', async () => {
+    const withCat = await req.post('/api/transactions').send({
+      account_id: accountId, type: 'EXPENSE', amount: 300, date: '2026-06-05', category: 'Comida',
+    });
+    assert.equal(withCat.status, 201);
+    assert.equal(withCat.body.category, 'comida');
+
+    const withoutCat = await req.post('/api/transactions').send({
+      account_id: accountId, type: 'EXPENSE', amount: 100, date: '2026-06-05',
+    });
+    assert.equal(withoutCat.body.category, 'otros');
+  });
+
+  test('GET /api/transactions filters by category', async () => {
+    const res = await req.get('/api/transactions?category=comida');
+    assert.ok(res.body.data.length > 0);
+    assert.ok(res.body.data.every(t => t.category === 'comida'));
+  });
+
+  test('GET /api/transactions searches description with q', async () => {
+    await req.post('/api/transactions').send({
+      account_id: accountId, type: 'EXPENSE', amount: 80, date: '2026-06-06', description: 'Gasolina del carro',
+    });
+    const res = await req.get('/api/transactions?q=gasolina');
+    assert.equal(res.body.total, 1);
+    assert.ok(res.body.data[0].description.includes('Gasolina'));
+  });
+
+  test('GET /api/transactions returns per-currency totals of the filtered set', async () => {
+    const res = await req.get('/api/transactions?q=gasolina');
+    assert.ok(Array.isArray(res.body.totals));
+    assert.equal(res.body.totals.length, 1);
+    assert.equal(res.body.totals[0].currency, 'DOP');
+    assert.equal(res.body.totals[0].expenses, 80);
+    assert.equal(res.body.totals[0].income, 0);
+  });
+
   test('POST /api/transactions returns 400 for malformed date', async () => {
     const res = await req.post('/api/transactions').send({
       account_id: accountId, type: 'EXPENSE', amount: 100, date: '01/06/2026',

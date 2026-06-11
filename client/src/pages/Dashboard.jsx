@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
   PieChart, Pie, Cell,
 } from 'recharts';
 import { api } from '../api.js';
-import { fmtMoney, fmtNumber } from '../format.js';
-
-const COLORS = ['#6366f1', '#059669', '#f59e0b', '#e11d48', '#8b5cf6', '#06b6d4'];
+import { fmtMoney, fmtNumber, fmtDate } from '../format.js';
+import { categoryInfo } from '../categories.js';
 
 const PERIODS = [
   { label: 'Semana', days: 7 },
@@ -100,6 +99,7 @@ export default function Dashboard() {
   const [periodIdx, setPeriodIdx] = useState(1);
   const [summary, setSummary]     = useState(null);
   const [distribution, setDistribution] = useState([]);
+  const [distCurrency, setDistCurrency] = useState(null);
   const [timeline, setTimeline]   = useState([]);
   const [recent, setRecent]       = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -111,11 +111,12 @@ export default function Dashboard() {
     const [s, d, t, tl] = await Promise.all([
       api.getSummary(params),
       api.getDistribution(params),
-      api.getTransactions({ ...params, limit: 5, page: 1 }),
+      api.getTransactions({ ...params, limit: 6, page: 1 }),
       api.getTimeline(tlCfg),
     ]);
     setSummary(s);
     setDistribution(d);
+    setDistCurrency(null);
     setRecent(t.data ?? []);
     setTimeline(fillTimeline(tl, tlCfg));
     setLoading(false);
@@ -130,11 +131,20 @@ export default function Dashboard() {
     Egresos:  Number(row.expenses),
   }));
 
-  const pieData = distribution.map(a => ({
-    name:     a.name,
-    value:    Number(a.expenses),
-    currency: a.currency,
-  }));
+  // Distribution comes as {category, currency, expenses}: never mix monedas.
+  const distTotals = new Map();
+  for (const row of distribution) {
+    distTotals.set(row.currency, (distTotals.get(row.currency) ?? 0) + Number(row.expenses));
+  }
+  const distCurrencies = [...distTotals.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c);
+  const activeCurrency = distCurrency ?? distCurrencies[0];
+  const pieData = distribution
+    .filter(r => r.currency === activeCurrency)
+    .map(r => {
+      const cat = categoryInfo(r.category);
+      return { name: cat.label, value: Number(r.expenses), color: cat.color, currency: r.currency };
+    });
+  const pieTotal = pieData.reduce((s, r) => s + r.value, 0);
 
   const totals = totalsByCurrency(summary?.by_account ?? []);
   const statValueClass = totals.length > 1 ? 'stat-value sm' : 'stat-value';
@@ -142,7 +152,10 @@ export default function Dashboard() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="page-title">Dashboard</h1>
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-sub">Resumen de tu actividad financiera</p>
+        </div>
         <div className="period-tabs">
           {PERIODS.map((p, i) => (
             <button
@@ -158,7 +171,7 @@ export default function Dashboard() {
 
       {loading ? (
         <div className="stats-grid">
-          {[...Array(4)].map((_, i) => (
+          {[...Array(3)].map((_, i) => (
             <div key={i} className="stat-card">
               <div className="skeleton" style={{ height: 11, width: '50%', marginBottom: 12 }} />
               <div className="skeleton" style={{ height: 26, width: '70%' }} />
@@ -201,25 +214,14 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-
-            {(summary?.by_account ?? []).map(a => (
-              <div className="stat-card" key={a.id}>
-                <div className="stat-label">
-                  <span className="stat-dot" style={{ background: a.color }} />
-                  {a.name}
-                </div>
-                <div className={`stat-value${Number(a.balance) >= 0 ? ' positive' : ' negative'}`}>
-                  {fmtMoney(a.balance, a.currency)}
-                </div>
-              </div>
-            ))}
           </div>
 
           <div className="charts-grid">
             <div className="chart-card">
               <div className="chart-title">Ingresos vs Egresos</div>
-              <ResponsiveContainer width="100%" height={210}>
+              <ResponsiveContainer width="100%" height={230}>
                 <BarChart data={barData} margin={{ top: 0, right: 0, left: -8, bottom: 0 }} barCategoryGap="32%">
+                  <CartesianGrid vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={fmtK} width={38} axisLine={false} tickLine={false} />
                   <Tooltip formatter={(v) => fmtNumber(v)} {...TooltipStyle} />
@@ -231,85 +233,139 @@ export default function Dashboard() {
             </div>
 
             <div className="chart-card">
-              <div className="chart-title">Distribución de egresos</div>
+              <div className="chart-title-row">
+                <div className="chart-title">Egresos por categoría</div>
+                {distCurrencies.length > 1 && (
+                  <div className="chip-group">
+                    {distCurrencies.map(c => (
+                      <button
+                        key={c}
+                        className={`chip${c === activeCurrency ? ' active' : ''}`}
+                        onClick={() => setDistCurrency(c)}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               {pieData.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-body">Sin egresos en este período</div>
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={210}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%" cy="50%"
-                      innerRadius={52}
-                      outerRadius={78}
-                      paddingAngle={2}
-                    >
-                      {pieData.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(v, _name, entry) => fmtMoney(v, entry?.payload?.currency)}
-                      {...TooltipStyle}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                <>
+                  <div className="donut-wrap">
+                    <ResponsiveContainer width="100%" height={170}>
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%" cy="50%"
+                          innerRadius={55}
+                          outerRadius={78}
+                          paddingAngle={2}
+                          strokeWidth={0}
+                        >
+                          {pieData.map((row, i) => (
+                            <Cell key={i} fill={row.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(v, _name, entry) => fmtMoney(v, entry?.payload?.currency)}
+                          {...TooltipStyle}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="donut-center">
+                      <div className="donut-center-label">Total</div>
+                      <div className="donut-center-value">{fmtMoney(pieTotal, activeCurrency)}</div>
+                    </div>
+                  </div>
+                  <div className="legend-list">
+                    {pieData.slice(0, 5).map(row => (
+                      <div className="legend-row" key={row.name}>
+                        <span className="acct-dot" style={{ background: row.color }} />
+                        <span className="legend-name">{row.name}</span>
+                        <span className="legend-value">{fmtMoney(row.value, row.currency)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Últimas transacciones</span>
-            </div>
-            {recent.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-title">Sin transacciones</div>
-                <div className="empty-body">No hay movimientos en este período.</div>
+          <div className="bottom-grid">
+            <div className="card" style={{ marginBottom: 0 }}>
+              <div className="card-header">
+                <span className="card-title">Últimas transacciones</span>
               </div>
-            ) : (
-              <div className="table-wrap">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Descripción</th>
-                      <th>Cuenta</th>
-                      <th>Tipo</th>
-                      <th style={{ textAlign: 'right' }}>Monto</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recent.map(tx => (
-                      <tr key={tx.id}>
-                        <td className="text-muted text-sm mono" style={{ whiteSpace: 'nowrap' }}>{tx.date}</td>
-                        <td>{tx.description || <span className="text-muted">—</span>}</td>
-                        <td>
-                          <span className="acct-cell">
-                            <span className="acct-dot" style={{ background: tx.account_color }} />
-                            {tx.account_name}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`badge badge-${tx.type === 'INCOME' ? 'income' : 'expense'}`}>
-                            {tx.type === 'INCOME' ? 'Ingreso' : 'Egreso'}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <span className={`amount ${tx.type === 'INCOME' ? 'positive' : 'negative'}`}>
-                            {tx.type === 'INCOME' ? '+' : '−'}{fmtMoney(tx.amount, tx.account_currency)}
-                          </span>
-                        </td>
+              {recent.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-title">Sin transacciones</div>
+                  <div className="empty-body">No hay movimientos en este período.</div>
+                </div>
+              ) : (
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th style={{ textAlign: 'right' }}>Monto</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {recent.map(tx => {
+                        const cat = categoryInfo(tx.category);
+                        return (
+                          <tr key={tx.id}>
+                            <td className="text-muted text-sm" style={{ whiteSpace: 'nowrap' }}>{fmtDate(tx.date)}</td>
+                            <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {tx.description || <span className="text-muted">—</span>}
+                            </td>
+                            <td>
+                              <span className="cat-cell">
+                                <span className="acct-dot" style={{ background: cat.color }} />
+                                {cat.label}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <span className={`amount ${tx.type === 'INCOME' ? 'positive' : 'negative'}`}>
+                                {tx.type === 'INCOME' ? '+' : '−'}{fmtMoney(tx.amount, tx.account_currency)}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="card" style={{ marginBottom: 0 }}>
+              <div className="card-header">
+                <span className="card-title">Cuentas</span>
               </div>
-            )}
+              {(summary?.by_account ?? []).length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-body">Aún no tienes cuentas.</div>
+                </div>
+              ) : (summary?.by_account ?? []).map(a => (
+                <div className="balance-row" key={a.id}>
+                  <span className="acct-dot" style={{ background: a.color }} />
+                  <span className="balance-name">{a.name}</span>
+                  <span className="balance-currency">{a.currency}</span>
+                  <span className={`balance-amount ${Number(a.balance) >= 0 ? 'positive' : 'negative'}`}>
+                    {fmtMoney(a.balance, a.currency)}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}

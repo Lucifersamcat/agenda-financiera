@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api.js';
-import { fmtMoney } from '../format.js';
+import { fmtMoney, fmtDate } from '../format.js';
+import { IconPlus, IconClose, IconEdit, IconTrash, IconArrowRight } from '../components/Icons.jsx';
 import Toast from '../components/Toast.jsx';
 
 const emptyForm = {
@@ -12,18 +13,6 @@ const emptyForm = {
   description: '',
 };
 
-const CloseIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-  </svg>
-);
-
-const ArrowIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: .5 }}>
-    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-  </svg>
-);
-
 export default function Transfers() {
   const [transfers, setTransfers] = useState([]);
   const [accounts, setAccounts]   = useState([]);
@@ -31,6 +20,7 @@ export default function Transfers() {
   const [editing, setEditing]     = useState(null);
   const [showForm, setShowForm]   = useState(false);
   const [toast, setToast]         = useState(null);
+  const [saving, setSaving]       = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [loading, setLoading]     = useState(true);
 
@@ -89,6 +79,8 @@ export default function Transfers() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     const payload = {
       from_account_id: Number(form.from_account_id),
       to_account_id:   Number(form.to_account_id),
@@ -111,6 +103,7 @@ export default function Transfers() {
     } catch (err) {
       setToast({ message: err.message, type: 'error' });
     }
+    setSaving(false);
   }
 
   async function handleDelete(id) {
@@ -136,7 +129,7 @@ export default function Transfers() {
                 {editing ? 'Editar transferencia' : 'Nueva transferencia'}
               </span>
               <button className="modal-close-btn" onClick={cancelForm} aria-label="Cerrar">
-                <CloseIcon />
+                <IconClose />
               </button>
             </div>
 
@@ -230,8 +223,8 @@ export default function Transfers() {
             </div>
 
             <div className="modal-foot">
-              <button type="submit" form="transfer-form" className="btn btn-primary">
-                {editing ? 'Guardar cambios' : 'Registrar'}
+              <button type="submit" form="transfer-form" className="btn btn-primary" disabled={saving}>
+                {saving ? 'Guardando…' : editing ? 'Guardar cambios' : 'Registrar'}
               </button>
               <button type="button" className="btn btn-ghost" onClick={cancelForm}>
                 Cancelar
@@ -242,11 +235,12 @@ export default function Transfers() {
       )}
 
       <div className="page-header">
-        <h1 className="page-title">Transferencias</h1>
+        <div>
+          <h1 className="page-title">Transferencias</h1>
+          <p className="page-sub">Movimientos entre tus cuentas, sin afectar las estadísticas</p>
+        </div>
         <button className="btn btn-primary" onClick={openNew}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
+          <IconPlus />
           Nueva
         </button>
       </div>
@@ -283,7 +277,7 @@ export default function Transfers() {
                 </tr>
               ) : transfers.map(tr => (
                 <tr key={tr.id} className={deletingId === tr.id ? 'row-confirming' : ''}>
-                  <td className="text-muted text-sm mono" style={{ whiteSpace: 'nowrap' }}>{tr.date}</td>
+                  <td className="text-muted text-sm" style={{ whiteSpace: 'nowrap' }}>{fmtDate(tr.date)}</td>
                   <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {tr.description || <span className="text-muted">—</span>}
                   </td>
@@ -293,7 +287,7 @@ export default function Transfers() {
                         <span className="acct-dot" style={{ background: tr.from_color }} />
                         {tr.from_name}
                       </span>
-                      <ArrowIcon />
+                      <IconArrowRight style={{ flexShrink: 0, opacity: .5 }} />
                       <span className="acct-cell">
                         <span className="acct-dot" style={{ background: tr.to_color }} />
                         {tr.to_name}
@@ -317,8 +311,12 @@ export default function Transfers() {
                       </div>
                     ) : (
                       <div className="table-actions">
-                        <button className="btn btn-sm btn-ghost" onClick={() => startEdit(tr)}>Editar</button>
-                        <button className="btn btn-sm btn-danger-soft" onClick={() => setDeletingId(tr.id)}>Eliminar</button>
+                        <button className="icon-btn" onClick={() => startEdit(tr)} aria-label="Editar" title="Editar">
+                          <IconEdit />
+                        </button>
+                        <button className="icon-btn danger" onClick={() => setDeletingId(tr.id)} aria-label="Eliminar" title="Eliminar">
+                          <IconTrash />
+                        </button>
                       </div>
                     )}
                   </td>

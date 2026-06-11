@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { fmtMoney } from '../format.js';
+import { IconEdit, IconTrash } from '../components/Icons.jsx';
 import Toast from '../components/Toast.jsx';
 
 const DEFAULT_COLORS = ['#6366f1','#059669','#f59e0b','#e11d48','#8b5cf6','#06b6d4','#f97316','#10b981'];
@@ -90,7 +91,10 @@ export default function Accounts() {
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div className="page-header">
-        <h1 className="page-title">Cuentas</h1>
+        <div>
+          <h1 className="page-title">Cuentas</h1>
+          <p className="page-sub">Tus cuentas, su moneda y balance actual</p>
+        </div>
       </div>
 
       <div className="accounts-layout">
@@ -220,8 +224,12 @@ export default function Accounts() {
                   </div>
                 ) : (
                   <>
-                    <button className="btn btn-sm btn-ghost" onClick={() => startEdit(a)}>Editar</button>
-                    <button className="btn btn-sm btn-danger-soft" onClick={() => setArchivingId(a.id)}>Archivar</button>
+                    <button className="icon-btn" onClick={() => startEdit(a)} aria-label="Editar" title="Editar">
+                      <IconEdit />
+                    </button>
+                    <button className="icon-btn danger" onClick={() => setArchivingId(a.id)} aria-label="Archivar" title="Archivar">
+                      <IconTrash />
+                    </button>
                   </>
                 )}
               </div>

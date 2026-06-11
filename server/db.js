@@ -29,6 +29,7 @@ export function createDb(dbPath) {
       amount      REAL NOT NULL CHECK(amount > 0),
       date        TEXT NOT NULL,
       description TEXT NOT NULL DEFAULT '',
+      category    TEXT NOT NULL DEFAULT 'otros',
       metadata    TEXT NOT NULL DEFAULT '{}',
       created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -52,6 +53,12 @@ export function createDb(dbPath) {
       created_at      TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // Databases created before the category feature need the column added.
+  const txCols = db.prepare(`PRAGMA table_info(transactions)`).all();
+  if (!txCols.some(c => c.name === 'category')) {
+    db.exec(`ALTER TABLE transactions ADD COLUMN category TEXT NOT NULL DEFAULT 'otros'`);
+  }
 
   return db;
 }
