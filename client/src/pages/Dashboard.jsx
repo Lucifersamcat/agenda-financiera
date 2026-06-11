@@ -6,6 +6,7 @@ import {
 import { api } from '../api.js';
 import { fmtMoney, fmtNumber, fmtDate } from '../format.js';
 import { categoryInfo } from '../categories.js';
+import { useSettings } from '../settings-context.jsx';
 
 const PERIODS = [
   { label: 'Semana', days: 7 },
@@ -95,8 +96,11 @@ const TooltipStyle = {
   cursor: { fill: 'rgba(0,0,0,.04)' },
 };
 
+const PERIOD_IDX = { week: 0, month: 1, year: 2 };
+
 export default function Dashboard() {
-  const [periodIdx, setPeriodIdx] = useState(1);
+  const { settings } = useSettings();
+  const [periodIdx, setPeriodIdx] = useState(PERIOD_IDX[settings.dashboard_period] ?? 1);
   const [summary, setSummary]     = useState(null);
   const [distribution, setDistribution] = useState([]);
   const [distCurrency, setDistCurrency] = useState(null);

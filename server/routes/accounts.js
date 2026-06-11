@@ -20,6 +20,33 @@ export function createAccountsRouter(db) {
     res.json(withBalance.all());
   });
 
+  router.get('/archived', (_req, res) => {
+    const rows = db.prepare(`
+      SELECT a.*,
+        COALESCE(SUM(CASE WHEN t.type='INCOME' THEN t.amount ELSE 0 END), 0) -
+        COALESCE(SUM(CASE WHEN t.type='EXPENSE' THEN t.amount ELSE 0 END), 0)
+        - COALESCE((SELECT SUM(amount_from) FROM transfers WHERE from_account_id = a.id), 0)
+        + COALESCE((SELECT SUM(amount_to)   FROM transfers WHERE to_account_id   = a.id), 0) AS balance
+      FROM accounts a
+      LEFT JOIN transactions t ON t.account_id = a.id
+      WHERE a.is_active = 0
+      GROUP BY a.id
+      ORDER BY a.created_at ASC
+    `).all();
+    res.json(rows);
+  });
+
+  router.post('/:id/restore', (req, res) => {
+    const id = Number(req.params.id);
+    const existing = db.prepare(
+      `SELECT id FROM accounts WHERE id = ? AND is_active = 0`
+    ).get(id);
+    if (!existing) return res.status(404).json({ error: 'Cuenta archivada no encontrada' });
+
+    db.prepare(`UPDATE accounts SET is_active = 1 WHERE id = ?`).run(id);
+    res.json(db.prepare(`SELECT * FROM accounts WHERE id = ?`).get(id));
+  });
+
   function normalizeCurrency(currency) {
     if (currency === undefined || currency === null) return null;
     const code = String(currency).trim().toUpperCase();

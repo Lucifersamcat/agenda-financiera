@@ -41,4 +41,14 @@ export const api = {
   createNote:        (data)     => post('/notes', data),
   updateNote:        (id, data) => patch(`/notes/${id}`, data),
   deleteNote:        (id)       => del(`/notes/${id}`),
+
+  getSettings:        ()     => get('/settings'),
+  updateSettings:     (data) => patch('/settings', data),
+
+  getArchivedAccounts: ()   => get('/accounts/archived'),
+  restoreAccount:      (id) => post(`/accounts/${id}/restore`),
+
+  exportData: ()     => get('/data/export'),
+  importData: (data) => post('/data/import', data),
+  wipeData:   ()     => post('/data/wipe', { confirm: true }),
 };

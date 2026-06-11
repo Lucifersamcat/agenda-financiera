@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { fmtMoney, fmtDate } from '../format.js';
 import { categoriesFor, categoryInfo, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../categories.js';
 import { IconPlus, IconClose, IconEdit, IconTrash, IconSearch } from '../components/Icons.jsx';
+import { useSettings } from '../settings-context.jsx';
 import Toast from '../components/Toast.jsx';
 
 const emptyForm = {
@@ -42,12 +43,13 @@ const PRESETS = [
 ];
 
 export default function Transactions() {
+  const { settings } = useSettings();
   const [transactions, setTransactions] = useState([]);
   const [accounts, setAccounts]         = useState([]);
   const [total, setTotal]               = useState(0);
   const [totals, setTotals]             = useState([]);
   const [page, setPage]                 = useState(1);
-  const LIMIT = 15;
+  const LIMIT = settings.page_size;
 
   const [filters, setFilters]     = useState(emptyFilters);
   const [search, setSearch]       = useState('');
@@ -76,7 +78,7 @@ export default function Transactions() {
       setToast({ message: e.message, type: 'error' });
     }
     setLoading(false);
-  }, [page, filters, q]);
+  }, [page, filters, q, LIMIT]);
 
   useEffect(() => { loadAccounts(); }, []);
   useEffect(() => { loadTx(); }, [loadTx]);

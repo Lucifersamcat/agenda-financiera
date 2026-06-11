@@ -11,6 +11,7 @@ Funciona de forma local — el servidor sirve la app y guarda los datos en una b
 - **Transferencias entre cuentas** — mueve dinero de una cuenta a otra, incluso entre monedas distintas. Son neutrales para las estadísticas (no cuentan como ingreso ni egreso), solo ajustan los balances.
 - **Notas** — apuntes rápidos.
 - **Dashboard** — totales de ingresos/egresos por moneda, balances por cuenta, gráfico de ingresos vs egresos y distribución de egresos por categoría, con períodos de semana/mes/año.
+- **Ajustes** — moneda por defecto, período inicial del dashboard y filas por página; restaurar cuentas archivadas; exportar/restaurar backup en JSON y borrado total con confirmación.
 
 ## Tecnologías
 

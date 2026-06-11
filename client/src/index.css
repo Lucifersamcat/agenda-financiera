@@ -144,6 +144,12 @@ input, select, textarea { font-family: inherit; }
 
 .sidebar-nav { padding: 8px; flex: 1; }
 
+.sidebar-footer {
+  padding: 8px;
+  border-top: 1px solid var(--sb-border);
+  flex-shrink: 0;
+}
+
 .nav-item {
   display: flex;
   align-items: center;
@@ -1112,6 +1118,43 @@ input[type="date"].form-input { cursor: pointer; }
   font-family: inherit;
 }
 .notes-content-input::placeholder { color: var(--text-3); }
+
+/* === SETTINGS === */
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 760px;
+}
+.settings-stack .card { margin-bottom: 0; }
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+.settings-row:last-child { border-bottom: none; }
+
+.settings-info { flex: 1; min-width: 220px; }
+.settings-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.settings-desc {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 1px;
+}
+
+.settings-control { width: 140px; flex-shrink: 0; }
+
+.danger-card { border-color: rgba(239,68,68,.35); }
 
 /* === LOADING / EMPTY === */
 .skeleton {
