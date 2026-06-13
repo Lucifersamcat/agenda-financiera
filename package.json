@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node --no-warnings server/index.js",
     "test": "node --no-warnings --test \"server/tests/*.test.js\"",
-    "build": "cd client && npm run build"
+    "build": "cd client && npm run build",
+    "release": "powershell -ExecutionPolicy Bypass -File package-release.ps1"
   },
   "dependencies": {
     "cors": "^2.8.5",

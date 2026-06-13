@@ -11,6 +11,9 @@ Set-Location $root
 $nodeVersion = 'v24.14.0'
 $nodeUrl     = "https://nodejs.org/dist/$nodeVersion/win-x64/node.exe"
 
+# Version de la app (se lee de package.json) para nombrar el .zip
+$appVersion = (Get-Content (Join-Path $root 'package.json') -Raw | ConvertFrom-Json).version
+
 $releaseRoot = Join-Path $root 'release'
 $appDir      = Join-Path $releaseRoot 'AgendaFinanciera'
 $cacheDir    = Join-Path $root '.node-cache'
@@ -127,8 +130,15 @@ NOTAS
 '@
 Set-Content -Path (Join-Path $appDir 'LEEME.txt') -Value $leeme -Encoding UTF8
 
+# 6) Comprimir en .zip listo para entregar
+$zipPath = Join-Path $releaseRoot "AgendaFinanciera-v$appVersion.zip"
+Write-Host 'Comprimiendo en .zip...' -ForegroundColor Yellow
+Compress-Archive -Path $appDir -DestinationPath $zipPath -Force
+$zipMb = (Get-Item $zipPath).Length / 1MB
+
 Write-Host ''
 Write-Host 'Listo.' -ForegroundColor Green
-Write-Host "Carpeta generada: $appDir" -ForegroundColor Green
-Write-Host 'Comprimila en .zip y entregasela al cliente.' -ForegroundColor Green
+Write-Host "Carpeta:  $appDir" -ForegroundColor Green
+Write-Host ("ZIP:      {0}  ({1:N1} MB)" -f $zipPath, $zipMb) -ForegroundColor Green
+Write-Host 'Entregale el .zip al cliente.' -ForegroundColor Green
 Write-Host ''
