@@ -167,6 +167,96 @@ input, select, textarea { font-family: inherit; }
 .nav-item:hover { background: var(--sb-hover); color: var(--sb-text-hover); }
 .nav-item.active { background: var(--sb-active); color: var(--sb-text-active); }
 
+/* === SERVER INFO POPOVER === */
+.srvinfo { position: relative; }
+.srvinfo-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.srvinfo-pop {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 8px;
+  right: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: 0 12px 32px rgba(0,0,0,.28);
+  padding: 14px;
+  z-index: 10;
+}
+
+.srvinfo-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.srvinfo-loading { font-size: 12px; color: var(--text-3); }
+
+.srvinfo-row { margin-bottom: 12px; }
+.srvinfo-row:last-of-type { margin-bottom: 0; }
+
+.srvinfo-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.srvinfo-url {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color var(--t);
+}
+.srvinfo-url:hover { border-color: var(--accent); }
+.srvinfo-url > span:first-child {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.srvinfo-copy {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.srvinfo-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 5px;
+  line-height: 1.35;
+}
+
+.srvinfo-foot {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
 /* Mobile header */
 .mobile-header {
   display: none;
@@ -246,7 +336,7 @@ input, select, textarea { font-family: inherit; }
 /* === STAT CARDS === */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -289,12 +379,15 @@ input, select, textarea { font-family: inherit; }
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.03em;
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .stat-value.positive { color: var(--income); }
 .stat-value.negative { color: var(--expense); }
@@ -1246,6 +1339,201 @@ input[type="date"].form-input { cursor: pointer; }
 }
 
 .settings-control { width: 140px; flex-shrink: 0; }
+
+.settings-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background 0.12s;
+  color: var(--text);
+}
+.settings-nav-row:last-child { border-bottom: none; }
+.settings-nav-row:hover { background: #fafbfc; }
+
+.catalog-back {
+  margin-bottom: 20px;
+}
+
+/* === DEUDAS === */
+.debt-item {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.debt-item:last-child { border-bottom: none; }
+
+.debt-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 6px;
+  cursor: pointer;
+  transition: background var(--t);
+}
+.debt-item:hover .debt-row { background: #fafbfc; }
+
+.debt-row-main { flex: 1; min-width: 0; }
+
+.debt-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.debt-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.type-chip {
+  padding: 1px 8px;
+  border-radius: var(--r-full);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.pill-paid,
+.pill-overdue {
+  padding: 1px 8px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pill-paid {
+  background: #ecfdf5;
+  color: var(--income);
+}
+.pill-overdue {
+  background: #fff1f2;
+  color: var(--expense);
+}
+
+.debt-row-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-3);
+  flex-wrap: wrap;
+}
+.debt-meta-danger { color: var(--expense); font-weight: 600; }
+
+.debt-amounts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+.debt-pending {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--expense);
+  white-space: nowrap;
+}
+.debt-pending.paid { color: var(--income); }
+.debt-target {
+  font-size: 11px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.debt-chevron {
+  display: flex;
+  color: var(--text-3);
+  transition: transform var(--t);
+  flex-shrink: 0;
+}
+.debt-chevron.open { transform: rotate(90deg); }
+
+.debt-progress { padding: 8px 16px 14px; }
+
+.progress-track {
+  height: 5px;
+  border-radius: var(--r-full);
+  background: var(--border);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+.progress-fill.complete { background: var(--income); }
+
+.debt-detail {
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--border-subtle);
+  background: #fafbfc;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.debt-facts {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.debt-facts strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.debt-note { color: var(--text-3); font-style: italic; }
+
+.abono-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.abono-form .form-input { height: 32px; font-size: 12px; }
+.abono-form .form-input[type="date"] { width: 140px; }
+.abono-form .form-input[type="number"] { width: 120px; }
+.abono-form .form-input:not([type]) { flex: 1; min-width: 140px; }
+
+.abono-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+.abono-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+}
+.abono-row:last-child { border-bottom: none; }
+.abono-date { color: var(--text-3); white-space: nowrap; width: 90px; flex-shrink: 0; }
+.abono-amount {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.abono-note { flex: 1; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.debt-detail-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.danger-text { color: var(--danger); }
 
 .danger-card { border-color: rgba(239,68,68,.35); }
 

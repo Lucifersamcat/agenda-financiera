@@ -71,6 +71,57 @@ export function createAccountTypesRouter(db) {
   return router;
 }
 
+export function createDebtTypesRouter(db) {
+  const router = Router();
+
+  router.get('/', (_req, res) => {
+    res.json(db.prepare(`SELECT * FROM debt_types ORDER BY position, id`).all());
+  });
+
+  router.post('/', (req, res) => {
+    const name = String(req.body?.name ?? '').trim();
+    if (!name) return res.status(400).json({ error: 'name es requerido' });
+
+    const slug = uniqueSlug(db, 'debt_types', name);
+    const pos = db.prepare(`SELECT COALESCE(MAX(position), -1) + 1 AS p FROM debt_types`).get().p;
+    const result = db.prepare(
+      `INSERT INTO debt_types (slug, name, position) VALUES (?, ?, ?)`
+    ).run(slug, name, pos);
+    res.status(201).json(db.prepare(`SELECT * FROM debt_types WHERE id = ?`).get(Number(result.lastInsertRowid)));
+  });
+
+  router.patch('/:id', (req, res) => {
+    const id = Number(req.params.id);
+    const existing = db.prepare(`SELECT * FROM debt_types WHERE id = ?`).get(id);
+    if (!existing) return res.status(404).json({ error: 'Tipo de deuda no encontrado' });
+
+    const name = req.body?.name !== undefined ? String(req.body.name).trim() : existing.name;
+    if (!name) return res.status(400).json({ error: 'name no puede estar vacío' });
+
+    db.prepare(`UPDATE debt_types SET name = ? WHERE id = ?`).run(name, id);
+    res.json(db.prepare(`SELECT * FROM debt_types WHERE id = ?`).get(id));
+  });
+
+  router.delete('/:id', (req, res) => {
+    const id = Number(req.params.id);
+    const existing = db.prepare(`SELECT * FROM debt_types WHERE id = ?`).get(id);
+    if (!existing) return res.status(404).json({ error: 'Tipo de deuda no encontrado' });
+    if (existing.slug === 'otro') {
+      return res.status(400).json({ error: 'El tipo "Otro" no se puede eliminar' });
+    }
+
+    const reassign = req.body?.reassign_to ?? 'otro';
+    const target = db.prepare(`SELECT slug FROM debt_types WHERE slug = ? AND id != ?`).get(String(reassign), id);
+    if (!target) return res.status(400).json({ error: 'El tipo de destino no existe' });
+
+    db.prepare(`UPDATE debts SET type = ? WHERE type = ?`).run(target.slug, existing.slug);
+    db.prepare(`DELETE FROM debt_types WHERE id = ?`).run(id);
+    res.json({ success: true });
+  });
+
+  return router;
+}
+
 export function createCategoriesRouter(db) {
   const router = Router();
 

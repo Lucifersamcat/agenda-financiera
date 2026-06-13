@@ -12,21 +12,23 @@ const SettingsContext = createContext({
   categories: [],
   accountTypes: [],
   customFields: [],
+  debtTypes: [],
   updateSettings: async () => {},
   refreshCatalogs: async () => {},
 });
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(null);
-  const [catalogs, setCatalogs] = useState({ categories: [], accountTypes: [], customFields: [] });
+  const [catalogs, setCatalogs] = useState({ categories: [], accountTypes: [], customFields: [], debtTypes: [] });
 
   const refreshCatalogs = useCallback(async () => {
-    const [categories, accountTypes, customFields] = await Promise.all([
+    const [categories, accountTypes, customFields, debtTypes] = await Promise.all([
       api.getCategories().catch(() => []),
       api.getAccountTypes().catch(() => []),
       api.getCustomFields().catch(() => []),
+      api.getDebtTypes().catch(() => []),
     ]);
-    setCatalogs({ categories, accountTypes, customFields });
+    setCatalogs({ categories, accountTypes, customFields, debtTypes });
   }, []);
 
   useEffect(() => {

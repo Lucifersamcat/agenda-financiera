@@ -8,6 +8,11 @@ import Transfers from './pages/Transfers.jsx';
 import Accounts from './pages/Accounts.jsx';
 import Notes from './pages/Notes.jsx';
 import Settings from './pages/Settings.jsx';
+import Debts from './pages/Debts.jsx';
+import CatalogCategories from './pages/CatalogCategories.jsx';
+import CatalogAccountTypes from './pages/CatalogAccountTypes.jsx';
+import CatalogCustomFields from './pages/CatalogCustomFields.jsx';
+import CatalogDebtTypes from './pages/CatalogDebtTypes.jsx';
 import './index.css';
 
 export default function App() {
@@ -41,8 +46,13 @@ export default function App() {
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/transfers"    element={<Transfers />} />
             <Route path="/accounts"     element={<Accounts />} />
+            <Route path="/debts"        element={<Debts />} />
             <Route path="/notes"        element={<Notes />} />
-            <Route path="/settings"     element={<Settings />} />
+            <Route path="/settings"                element={<Settings />} />
+            <Route path="/settings/categories"    element={<CatalogCategories />} />
+            <Route path="/settings/account-types" element={<CatalogAccountTypes />} />
+            <Route path="/settings/custom-fields" element={<CatalogCustomFields />} />
+            <Route path="/settings/debt-types"    element={<CatalogDebtTypes />} />
           </Routes>
         </main>
       </div>

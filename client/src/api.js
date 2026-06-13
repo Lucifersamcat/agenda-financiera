@@ -45,6 +45,8 @@ export const api = {
   getSettings:        ()     => get('/settings'),
   updateSettings:     (data) => patch('/settings', data),
 
+  getServerInfo: () => get('/server-info'),
+
   getArchivedAccounts: ()   => get('/accounts/archived'),
   restoreAccount:      (id) => post(`/accounts/${id}/restore`),
 
@@ -70,4 +72,20 @@ export const api = {
   createCustomField: (data)     => post('/custom-fields', data),
   updateCustomField: (id, data) => patch(`/custom-fields/${id}`, data),
   deleteCustomField: (id)       => del(`/custom-fields/${id}`),
+
+  getDebts:   ()         => get('/debts'),
+  getDebt:    (id)       => get(`/debts/${id}`),
+  createDebt: (data)     => post('/debts', data),
+  updateDebt: (id, data) => patch(`/debts/${id}`, data),
+  deleteDebt: (id)       => del(`/debts/${id}`),
+
+  createDebtPayment: (debtId, data)            => post(`/debts/${debtId}/payments`, data),
+  updateDebtPayment: (debtId, paymentId, data) => patch(`/debts/${debtId}/payments/${paymentId}`, data),
+  deleteDebtPayment: (debtId, paymentId)       => del(`/debts/${debtId}/payments/${paymentId}`),
+
+  getDebtTypes:   ()         => get('/debt-types'),
+  createDebtType: (data)     => post('/debt-types', data),
+  updateDebtType: (id, data) => patch(`/debt-types/${id}`, data),
+  deleteDebtType: (id, reassign_to) =>
+    request(`/debt-types/${id}`, { method: 'DELETE', body: JSON.stringify({ reassign_to }) }),
 };

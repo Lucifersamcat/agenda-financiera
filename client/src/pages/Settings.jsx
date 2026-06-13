@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { fmtMoney, fmtDate } from '../format.js';
 import { useSettings } from '../settings-context.jsx';
-import { CategoriesEditor, AccountTypesEditor, CustomFieldsEditor } from '../components/CatalogEditors.jsx';
+import { IconChevronRight } from '../components/Icons.jsx';
 import Toast from '../components/Toast.jsx';
 
 const CURRENCIES = ['DOP', 'USD', 'EUR'];
@@ -10,7 +11,8 @@ const PERIOD_LABELS = { week: 'Semana', month: 'Mes', year: 'Año' };
 const PAGE_SIZES = [10, 15, 25, 50];
 
 export default function Settings() {
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, categories, accountTypes, customFields, debtTypes } = useSettings();
+  const navigate = useNavigate();
   const [archived, setArchived] = useState([]);
   const [toast, setToast]       = useState(null);
   const [wipeText, setWipeText] = useState('');
@@ -172,9 +174,39 @@ export default function Settings() {
         </div>
 
         {/* Catálogos editables */}
-        <CategoriesEditor setToast={setToast} />
-        <AccountTypesEditor setToast={setToast} />
-        <CustomFieldsEditor setToast={setToast} />
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Catálogos</span>
+          </div>
+          <div className="settings-nav-row" onClick={() => navigate('/settings/categories')}>
+            <span className="settings-label">Categorías</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {categories.length > 0 && <span className="card-count">{categories.length}</span>}
+              <IconChevronRight />
+            </div>
+          </div>
+          <div className="settings-nav-row" onClick={() => navigate('/settings/account-types')}>
+            <span className="settings-label">Tipos de cuenta</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {accountTypes.length > 0 && <span className="card-count">{accountTypes.length}</span>}
+              <IconChevronRight />
+            </div>
+          </div>
+          <div className="settings-nav-row" onClick={() => navigate('/settings/custom-fields')}>
+            <span className="settings-label">Campos personalizados</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {customFields.length > 0 && <span className="card-count">{customFields.length}</span>}
+              <IconChevronRight />
+            </div>
+          </div>
+          <div className="settings-nav-row" onClick={() => navigate('/settings/debt-types')}>
+            <span className="settings-label">Tipos de deuda</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {debtTypes.length > 0 && <span className="card-count">{debtTypes.length}</span>}
+              <IconChevronRight />
+            </div>
+          </div>
+        </div>
 
         {/* Cuentas archivadas */}
         <div className="card">

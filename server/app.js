@@ -9,10 +9,13 @@ import { createSummaryRouter } from './routes/summary.js';
 import { createTransfersRouter } from './routes/transfers.js';
 import { createSettingsRouter } from './routes/settings.js';
 import { createDataRouter } from './routes/data.js';
+import { createDebtsRouter } from './routes/debts.js';
+import { createServerInfoRouter } from './routes/server-info.js';
 import {
   createAccountTypesRouter,
   createCategoriesRouter,
   createCustomFieldsRouter,
+  createDebtTypesRouter,
 } from './routes/catalog.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -24,6 +27,7 @@ export function createApp(db) {
   app.use(express.json());
 
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+  app.use('/api/server-info', createServerInfoRouter());
   app.use('/api/accounts', createAccountsRouter(db));
   app.use('/api/transactions', createTransactionsRouter(db));
   app.use('/api/notes', createNotesRouter(db));
@@ -34,6 +38,8 @@ export function createApp(db) {
   app.use('/api/account-types', createAccountTypesRouter(db));
   app.use('/api/categories', createCategoriesRouter(db));
   app.use('/api/custom-fields', createCustomFieldsRouter(db));
+  app.use('/api/debts', createDebtsRouter(db));
+  app.use('/api/debt-types', createDebtTypesRouter(db));
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 

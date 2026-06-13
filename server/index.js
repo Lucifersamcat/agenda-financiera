@@ -41,11 +41,8 @@ function printBanner(localIp) {
   console.log(`  ${C.dim}El navegador se abrirá automáticamente.${C.reset}`);
   console.log('');
   console.log(`  ${C.dim}${sep}${C.reset}`);
-  console.log(`  ${C.green}${C.bold}Mantén esta ventana abierta mientras uses la app.${C.reset}`);
-  console.log(`  ${C.dim}La app funciona solo mientras este servidor esté activo.${C.reset}`);
-  console.log('');
-  console.log(`  ${C.yellow}Para cerrar: escribe ${C.bold}1${C.reset}${C.yellow} y presiona Enter${C.reset}`);
-  console.log(`  ${C.yellow}o cierra esta ventana con la X${C.reset}`);
+  console.log(`  ${C.dim}Inicia la app con ${C.reset}${C.bold}start.bat${C.reset}${C.dim} y ciérrala con ${C.reset}${C.bold}stop.bat${C.reset}${C.dim}.${C.reset}`);
+  console.log(`  ${C.dim}Ctrl+C detiene este proceso.${C.reset}`);
   console.log(`  ${C.dim}${sep}${C.reset}`);
   console.log('');
 }
@@ -59,15 +56,6 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
 
   const { default: open } = await import('open');
   open(`http://localhost:${PORT}`);
-
-  process.stdin.resume();
-  process.stdin.setEncoding('utf8');
-  process.stdin.on('data', (chunk) => {
-    if (chunk.trim() === '1') {
-      console.log(`\n  ${C.dim}Cerrando Agenda Financiera...${C.reset}\n`);
-      process.exit(0);
-    }
-  });
 });
 
 server.on('error', (err) => {

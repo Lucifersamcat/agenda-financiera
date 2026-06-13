@@ -42,3 +42,15 @@ export const IconArrowRight = ({ size = 14, style }) => (
     <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
   </svg>
 );
+
+export const IconArrowLeft = ({ size = 14 }) => (
+  <svg {...base} width={size} height={size} strokeWidth="2">
+    <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+  </svg>
+);
+
+export const IconChevronRight = ({ size = 14 }) => (
+  <svg {...base} width={size} height={size} strokeWidth="2">
+    <polyline points="9 18 15 12 9 6"/>
+  </svg>
+);

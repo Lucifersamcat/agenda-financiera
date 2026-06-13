@@ -105,23 +105,26 @@ export default function Dashboard() {
   const [distCurrency, setDistCurrency] = useState(null);
   const [timeline, setTimeline]   = useState([]);
   const [recent, setRecent]       = useState([]);
+  const [debts, setDebts]         = useState([]);
   const [loading, setLoading]     = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const params = periodDates(PERIODS[periodIdx].days);
     const tlCfg  = timelineConfig(periodIdx);
-    const [s, d, t, tl] = await Promise.all([
+    const [s, d, t, tl, dbt] = await Promise.all([
       api.getSummary(params),
       api.getDistribution(params),
       api.getTransactions({ ...params, limit: 6, page: 1 }),
       api.getTimeline(tlCfg),
+      api.getDebts().catch(() => []),
     ]);
     setSummary(s);
     setDistribution(d);
     setDistCurrency(null);
     setRecent(t.data ?? []);
     setTimeline(fillTimeline(tl, tlCfg));
+    setDebts(dbt);
     setLoading(false);
   }, [periodIdx]);
 
@@ -156,6 +159,15 @@ export default function Dashboard() {
 
   const totals = totalsByCurrency(summary?.by_account ?? []);
   const statValueClass = totals.length > 1 ? 'stat-value sm' : 'stat-value';
+
+  // Deudas: saldo pendiente actual por moneda (no depende del período).
+  const debtMap = new Map();
+  for (const d of debts) {
+    if (d.status !== 'ACTIVE') continue;
+    debtMap.set(d.currency, (debtMap.get(d.currency) ?? 0) + Number(d.pending));
+  }
+  const debtTotals = [...debtMap.entries()].map(([currency, pending]) => ({ currency, pending }));
+  const debtValueClass = debtTotals.length > 1 ? 'stat-value sm' : 'stat-value';
 
   return (
     <div className="page">
@@ -221,6 +233,23 @@ export default function Dashboard() {
                   {fmtMoney(t.expenses, t.currency)}
                 </div>
               ))}
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-label">
+                <span className="stat-dot" style={{ background: '#f59e0b' }} />
+                Deudas
+              </div>
+              {debtTotals.length === 0 ? (
+                <div className={statValueClass}>{fmtMoney(0, 'DOP')}</div>
+              ) : (
+                debtTotals.map(d => (
+                  <div key={d.currency} className={`${debtValueClass} negative`}>
+                    {fmtMoney(d.pending, d.currency)}
+                  </div>
+                ))
+              )}
+              <div className="stat-sub">Pendiente por pagar</div>
             </div>
           </div>
 

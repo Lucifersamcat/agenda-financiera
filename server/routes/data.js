@@ -16,6 +16,9 @@ export function createDataRouter(db) {
       account_types: db.prepare(`SELECT * FROM account_types ORDER BY id`).all(),
       categories:    db.prepare(`SELECT * FROM categories ORDER BY id`).all(),
       custom_fields: db.prepare(`SELECT * FROM custom_fields ORDER BY id`).all(),
+      debt_types:    db.prepare(`SELECT * FROM debt_types ORDER BY id`).all(),
+      debts:         db.prepare(`SELECT * FROM debts ORDER BY id`).all(),
+      debt_payments: db.prepare(`SELECT * FROM debt_payments ORDER BY id`).all(),
     });
   });
 
@@ -53,6 +56,17 @@ export function createDataRouter(db) {
       INSERT INTO notes (id, title, content, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?)
     `);
+    const insertDebtType = db.prepare(`
+      INSERT INTO debt_types (id, slug, name, position) VALUES (?, ?, ?, ?)
+    `);
+    const insertDebt = db.prepare(`
+      INSERT INTO debts (id, name, type, currency, principal, total_to_pay, interest_rate, rate_period, start_date, due_date, description, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const insertDebtPayment = db.prepare(`
+      INSERT INTO debt_payments (id, debt_id, amount, date, note, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
     const upsertSetting = db.prepare(`
       INSERT INTO settings (key, value) VALUES (?, ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value
@@ -66,6 +80,8 @@ export function createDataRouter(db) {
       db.exec('DELETE FROM transfers');
       db.exec('DELETE FROM notes');
       db.exec('DELETE FROM accounts');
+      db.exec('DELETE FROM debt_payments');
+      db.exec('DELETE FROM debts');
 
       for (const a of data.accounts) {
         insertAccount.run(
@@ -117,6 +133,24 @@ export function createDataRouter(db) {
           insertCustomField.run(f.id ?? null, f.key, f.name, f.type, f.options ?? '[]', f.applies_to ?? 'BOTH', f.position ?? 0);
         }
       }
+      if (Array.isArray(data.debt_types) && data.debt_types.length) {
+        db.exec('DELETE FROM debt_types');
+        for (const t of data.debt_types) {
+          insertDebtType.run(t.id ?? null, t.slug, t.name, t.position ?? 0);
+        }
+      }
+      for (const d of data.debts ?? []) {
+        insertDebt.run(
+          d.id ?? null, String(d.name ?? ''), d.type ?? null, d.currency ?? 'DOP',
+          d.principal, d.total_to_pay ?? null, d.interest_rate ?? null, d.rate_period ?? null,
+          d.start_date, d.due_date ?? null, d.description ?? '', d.created_at ?? now()
+        );
+      }
+      for (const p of data.debt_payments ?? []) {
+        insertDebtPayment.run(
+          p.id ?? null, p.debt_id, p.amount, p.date, p.note ?? '', p.created_at ?? now()
+        );
+      }
 
       db.exec('COMMIT');
     } catch (err) {
@@ -143,6 +177,8 @@ export function createDataRouter(db) {
       db.exec('DELETE FROM transfers');
       db.exec('DELETE FROM notes');
       db.exec('DELETE FROM accounts');
+      db.exec('DELETE FROM debt_payments');
+      db.exec('DELETE FROM debts');
       db.exec('COMMIT');
     } catch (err) {
       db.exec('ROLLBACK');

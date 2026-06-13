@@ -257,6 +257,110 @@ export function AccountTypesEditor({ setToast }) {
   );
 }
 
+/* ---------- Tipos de deuda ---------- */
+
+export function DebtTypesEditor({ setToast }) {
+  const { debtTypes, refreshCatalogs } = useSettings();
+  const [editing, setEditing]   = useState(null);
+  const [name, setName]         = useState('');
+  const [deleting, setDeleting] = useState(null);
+  const [reassign, setReassign] = useState('otro');
+
+  async function save() {
+    if (!name.trim()) return;
+    try {
+      if (editing === 'new') {
+        await api.createDebtType({ name });
+        setToast({ message: 'Tipo de deuda creado' });
+      } else {
+        await api.updateDebtType(editing, { name });
+        setToast({ message: 'Tipo de deuda actualizado' });
+      }
+      setEditing(null);
+      await refreshCatalogs();
+    } catch (err) {
+      setToast({ message: err.message, type: 'error' });
+    }
+  }
+
+  async function remove(id) {
+    try {
+      await api.deleteDebtType(id, reassign);
+      setToast({ message: 'Tipo de deuda eliminado' });
+      setDeleting(null);
+      await refreshCatalogs();
+    } catch (err) {
+      setToast({ message: err.message, type: 'error' });
+    }
+  }
+
+  const editorRow = (
+    <div className="catalog-form">
+      <input
+        className="form-input"
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="Nombre del tipo"
+        autoFocus
+      />
+      <div className="catalog-form-actions">
+        <button className="btn btn-sm btn-primary" onClick={save}>Guardar</button>
+        <button className="btn btn-sm btn-ghost" onClick={() => setEditing(null)}>Cancelar</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <span className="card-title">Tipos de deuda</span>
+        <button className="btn btn-ghost btn-sm" onClick={() => { setEditing('new'); setName(''); setDeleting(null); }}>
+          <IconPlus size={11} /> Nuevo
+        </button>
+      </div>
+
+      {editing === 'new' && <div className="settings-row">{editorRow}</div>}
+
+      {debtTypes.map(t => (
+        <div className="settings-row" key={t.id}>
+          {editing === t.id ? editorRow : deleting === t.id ? (
+            <>
+              <span className="settings-label">{t.name}</span>
+              <div className="inline-confirm" style={{ flexWrap: 'wrap' }}>
+                <span className="inline-confirm-label">Mover sus deudas a</span>
+                <select className="form-select" style={{ width: 130, height: 28, fontSize: 12 }}
+                  value={reassign} onChange={e => setReassign(e.target.value)}>
+                  {debtTypes.filter(o => o.id !== t.id).map(o => (
+                    <option key={o.slug} value={o.slug}>{o.name}</option>
+                  ))}
+                </select>
+                <button className="btn btn-sm btn-danger" onClick={() => remove(t.id)}>Eliminar</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => setDeleting(null)}>Cancelar</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <span className="settings-label">{t.name}</span>
+              <div style={{ display: 'flex', gap: 2 }}>
+                <button className="icon-btn" onClick={() => { setEditing(t.id); setName(t.name); setDeleting(null); }}
+                  aria-label="Editar" title="Editar">
+                  <IconEdit />
+                </button>
+                {t.slug !== 'otro' && (
+                  <button className="icon-btn danger" onClick={() => { setDeleting(t.id); setReassign('otro'); setEditing(null); }}
+                    aria-label="Eliminar" title="Eliminar">
+                    <IconTrash />
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ---------- Campos personalizados ---------- */
 
 export function CustomFieldsEditor({ setToast }) {

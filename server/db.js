@@ -83,6 +83,37 @@ export function createDb(dbPath) {
       applies_to TEXT NOT NULL DEFAULT 'BOTH' CHECK(applies_to IN ('INCOME','EXPENSE','BOTH')),
       position   INTEGER NOT NULL DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS debt_types (
+      id       INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug     TEXT NOT NULL UNIQUE,
+      name     TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS debts (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      name          TEXT NOT NULL,
+      type          TEXT,
+      currency      TEXT NOT NULL DEFAULT 'DOP',
+      principal     REAL NOT NULL CHECK(principal > 0),
+      total_to_pay  REAL CHECK(total_to_pay IS NULL OR total_to_pay > 0),
+      interest_rate REAL CHECK(interest_rate IS NULL OR interest_rate >= 0),
+      rate_period   TEXT CHECK(rate_period IS NULL OR rate_period IN ('MONTHLY','ANNUAL')),
+      start_date    TEXT NOT NULL,
+      due_date      TEXT,
+      description   TEXT NOT NULL DEFAULT '',
+      created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS debt_payments (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      debt_id    INTEGER NOT NULL REFERENCES debts(id) ON DELETE CASCADE,
+      amount     REAL NOT NULL CHECK(amount > 0),
+      date       TEXT NOT NULL,
+      note       TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   // Databases created before the category feature need the column added.
@@ -138,6 +169,18 @@ function seedCatalogs(db) {
     for (const [slug, name, color] of expense) ins.run(slug, name, color, 'EXPENSE', pos++);
     for (const [slug, name, color] of income)  ins.run(slug, name, color, 'INCOME', pos++);
     ins.run('otros', 'Otros', '#94a3b8', 'BOTH', pos);
+  }
+
+  if (db.prepare(`SELECT COUNT(*) AS c FROM debt_types`).get().c === 0) {
+    const ins = db.prepare(`INSERT INTO debt_types (slug, name, position) VALUES (?, ?, ?)`);
+    [
+      ['banco', 'Banco'],
+      ['prestamo-callejero', 'Préstamo callejero'],
+      ['credito-comercio', 'Crédito de comercio'],
+      ['tarjeta-credito', 'Tarjeta de crédito'],
+      ['personal', 'Personal'],
+      ['otro', 'Otro'],
+    ].forEach(([slug, name], i) => ins.run(slug, name, i));
   }
 
   if (db.prepare(`SELECT COUNT(*) AS c FROM custom_fields`).get().c === 0) {

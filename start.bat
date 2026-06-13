@@ -20,4 +20,8 @@ if not exist client\dist (
   cd ..
 )
 
-node --no-warnings server/index.js
+echo Iniciando Agenda Financiera...
+echo El navegador se abrira automaticamente.
+echo Para cerrar la app usa stop.bat
+wscript "%~dp0run-hidden.vbs"
+exit
