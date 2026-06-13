@@ -3,6 +3,8 @@ client/node_modules/
 client/dist/
 data/
 .env
+release/
+.node-cache/
 
 # Claude Code / productivity plugin tooling artifacts
 .claude/
